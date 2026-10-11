@@ -54,27 +54,25 @@ public class UserDb {
     return Optional.empty();
   }
 
-  // Finds user by unique tag (the part after #) sequentially.
-  public synchronized Optional<User> findByTag(String tag)
+  // Finds user by email (primary user identifier) sequentially.
+  public synchronized Optional<User> findByEmail(String email)
       throws IOException {
     UserDatabase db = readDatabase();
     for (User u : db.getUsersList()) {
-      String t = extractTag(u.getUsername());
-      if (t.equals(tag)) {
+      if (u.getEmail().equalsIgnoreCase(email)) {
         return Optional.of(u);
       }
     }
     return Optional.empty();
   }
 
-  // Saves a new user or updates an existing user matched by tag.
+  // Saves a new user or updates an existing user matched by email.
   public synchronized void saveUser(User user) throws IOException {
     UserDatabase db = readDatabase();
     List<User> list = new ArrayList<>();
-    String targetTag = extractTag(user.getUsername());
     boolean updated = false;
     for (User u : db.getUsersList()) {
-      if (extractTag(u.getUsername()).equals(targetTag)) {
+      if (u.getEmail().equalsIgnoreCase(user.getEmail())) {
         list.add(user);
         updated = true;
       } else {
@@ -85,17 +83,5 @@ public class UserDb {
       list.add(user);
     }
     writeDatabase(UserDatabase.newBuilder().addAllUsers(list).build());
-  }
-
-  // Extracts tag portion after the '#' character.
-  public static String extractTag(String username) {
-    int idx = username.indexOf('#');
-    return idx >= 0 ? username.substring(idx + 1) : username;
-  }
-
-  // Extracts name portion before the '#' character.
-  public static String extractName(String username) {
-    int idx = username.indexOf('#');
-    return idx >= 0 ? username.substring(0, idx) : username;
   }
 }

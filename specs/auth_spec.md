@@ -1,63 +1,33 @@
-# Authentication Specification: Google Login & Username Management
+# Authentication & User Management Specification
 
 ## 1. Overview
 User authentication and registration are handled exclusively via **Log in with
 Google** (Google OAuth2 / OpenID Connect ID token verification).
 All communication occurs strictly over **HTTPS**.
 
-User identity is defined by a unique handle in the format:
-`<name>#<tag>` (e.g. `Alice#8391`).
-- `<name>`: The user's visible display name. By default upon first login, this
-  is derived from what came from Google auth (sanitized to `^[a-zA-Z]+$`).
-- `<tag>`: The random suffix generated after `#`.
-- **Backend User Distinction**:
-  > [!IMPORTANT]
-  > Across backend services and storage, **only the part after `#` (the tag)**
-  > should be used to uniquely distinguish and identify users.
-- **UI Display**:
-  The `#<tag>` is an internal discriminator and must **never** be displayed
-  in the user interface; only `<name>` is visible to users.
+User identity:
+- **Unique User Identifier**: The user's **email** acts as the primary
+  `user_id` / identifier across all backend services, databases, and sessions.
+- **Customizable Username**: Users can set an optional custom username
+  (strictly `^[a-zA-Z]+$`).
+- **Default State**: Upon first registration, the username is **empty** (`""`).
+- **UI Behavior**:
+  - If a user has not set a username yet, the full-canvas **Settings** tile
+    opens automatically with a banner: `"Please set yourself a username"`.
+  - Once set, the top bar displays the chosen username (or fallback to email
+    prefix if not yet chosen), and the normal workspace canvas is shown.
+  - The Settings icon on the top navigation bar toggles the full-canvas
+    Settings tile at any time.
 
 ---
 
-## 2. Authentication & Onboarding Flow
+## 2. Storage Schema (Textproto)
 
-1. **Google Login Step**:
-   - User signs in with Google on the login tile (`web/login/`).
-   - Frontend receives Google ID token and sends `POST /api/auth/google`.
-   - Backend verifies ID token, extracting `google_id`, `email`, and name.
-   - Backend scans `run/storage/users.textproto`:
-     - **Returning User** (found by `google_id`): Creates session in
-       `run/storage/sessions.textproto`, sets `doki_session` cookie, and
-       returns `needs_username_prompt = false`.
-     - **New User** (not found):
-       - Derives default `<name>` from Google auth data (filtering for
-         `[a-zA-Z]`, or fallback if empty).
-       - Generates a unique random `<tag>` (e.g. `8391`).
-       - Creates user record with default `<name>#<tag>`.
-       - Creates session in `run/storage/sessions.textproto` and issues
-         `doki_session` cookie.
-       - Returns `needs_username_prompt = true` so the UI can immediately
-         prompt the user to customize their name if desired.
+Stored as plain textproto files in `run/storage/` and queried sequentially.
 
-2. **Set Username Step**:
-   - UI shows a prompt on first login giving the user the option to change
-     their default name (only characters `^[a-zA-Z]+$` allowed).
-   - Frontend calls `POST /api/auth/set_username` with the chosen name.
-   - Backend validates `^[a-zA-Z]+$`, locates the user by their authenticated
-     session, updates the `<name>` prefix while preserving the unique `<tag>`,
-     and saves to `run/storage/users.textproto`.
-
----
-
-## 3. Storage Schema (Textproto)
-
-Per project guidelines, databases are stored as plain textproto files in
-`run/storage/` and queried sequentially.
-
-### 3.1 Users (`run/storage/users.textproto`)
-- `username`: `<name>#<tag>`. The `<tag>` part uniquely identifies the user.
-- `email`: User email from Google.
+### 2.1 Users (`run/storage/users.textproto`)
+- `email`: User primary email (unique identifier).
+- `username`: Customizable username (letters only, empty by default).
 - `google_id`: Unique subject ID from Google.
 
 ```proto
@@ -65,8 +35,8 @@ syntax = "proto3";
 package doki.auth;
 
 message User {
-  string username = 1;   // e.g. "Alice#8391"
-  string email = 2;      // e.g. "alice@example.com"
+  string email = 1;      // Unique user identifier
+  string username = 2;   // Customizable name (default "")
   string google_id = 3;  // Google subject ID
 }
 
@@ -75,19 +45,10 @@ message UserDatabase {
 }
 ```
 
-Example in `run/storage/users.textproto`:
-```textproto
-users {
-  username: "Alice#8391"
-  email: "alice@example.com"
-  google_id: "109876543210987654321"
-}
-```
-
-### 3.2 Sessions (`run/storage/sessions.textproto`)
-- `user_tag`: The tag after `#` used to identify the user.
+### 2.2 Sessions (`run/storage/sessions.textproto`)
 - `session_token`: Secure random token.
-- `expires_at_ms`: Expiration timestamp in ms.
+- `user_id`: References the user's `email`.
+- `expires_at_ms`: Expiration epoch timestamp.
 
 ```proto
 syntax = "proto3";
@@ -95,7 +56,7 @@ package doki.auth;
 
 message Session {
   string session_token = 1;
-  string user_tag = 2;       // The unique tag identifying the user
+  string user_id = 2;        // Email identifying the user
   int64 expires_at_ms = 3;
 }
 
@@ -106,69 +67,26 @@ message SessionDatabase {
 
 ---
 
-## 4. API Endpoints (HTTPS REST over Proto)
+## 3. API Endpoints (HTTPS REST over Proto/JSON)
 
-### 4.1 Login with Google
+### 3.1 Login with Google
 - **Path**: `POST /api/auth/google`
 - **Security**: HTTPS only
+- Request: `GoogleLoginRequest { string id_token = 1; }`
+- Response: `GoogleLoginResponse { bool success = 1; string error_message = 2; string username = 3; string email = 4; }`
+- Sets `doki_session` cookie on success.
 
-#### Request: `GoogleLoginRequest`
-```proto
-message GoogleLoginRequest {
-  string id_token = 1;  // OIDC ID token from Google
-}
-```
-
-#### Response: `GoogleLoginResponse`
-```proto
-message GoogleLoginResponse {
-  bool success = 1;
-  string error_message = 2;
-  bool needs_username_prompt = 3;  // True on first login to trigger name prompt
-  string display_name = 4;         // Base name without #tag for UI
-}
-```
-*Note*: Sets `Set-Cookie: doki_session=...; Secure; HttpOnly; SameSite=Strict`.
-
----
-
-### 4.2 Set Username
+### 3.2 Set Username (via Settings)
 - **Path**: `POST /api/auth/set_username`
-- **Security**: HTTPS, requires `doki_session` cookie
+- **Security**: HTTPS, requires valid `doki_session` cookie
+- Request: `SetUsernameRequest { string desired_name = 1; }`
+- Response: `SetUsernameResponse { bool success = 1; string error_message = 2; string username = 3; }`
 
-#### Request: `SetUsernameRequest`
-```proto
-message SetUsernameRequest {
-  string desired_name = 1;  // Must match ^[a-zA-Z]+$
-}
-```
-
-#### Response: `SetUsernameResponse`
-```proto
-message SetUsernameResponse {
-  bool success = 1;
-  string error_message = 2;
-  string display_name = 3;  // Updated display name
-}
-```
-
----
-
-### 4.3 Current Authenticated User
+### 3.3 Current Authenticated User
 - **Path**: `GET /api/auth/me`
 - **Security**: HTTPS, requires `doki_session` cookie
+- Response: `GetMeResponse { bool authenticated = 1; string username = 2; string email = 3; }`
 
-#### Response: `GetMeResponse`
-```proto
-message GetMeResponse {
-  bool authenticated = 1;
-  string display_name = 2;  // Base name without #tag for UI
-}
-```
-
----
-
-### 4.4 Logout
+### 3.4 Logout
 - **Path**: `POST /api/auth/logout`
 - **Security**: HTTPS, requires `doki_session` cookie
-- Invalidates session in `run/storage/sessions.textproto` and clears cookie.

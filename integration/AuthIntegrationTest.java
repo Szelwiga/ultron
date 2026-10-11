@@ -54,7 +54,6 @@ public class AuthIntegrationTest {
     GoogleTokenVerifier testVerifier = new GoogleTokenVerifier(testClientId) {
       @Override
       public Optional<VerifiedToken> verify(String token) {
-        // Direct test verification using test key pair
         try {
           String[] parts = token.split("\\.");
           if (parts.length != 3) return Optional.empty();
@@ -102,7 +101,7 @@ public class AuthIntegrationTest {
       int port, UserDb userDb, KeyPair testKp) throws Exception {
     String signedJwt = createSignedJwt(testKp, false);
 
-    // 1. Google Login (First time)
+    // 1. Google Login (First time) - username should be default empty
     GoogleLoginRequest loginReq = GoogleLoginRequest.newBuilder()
         .setIdToken(signedJwt)
         .build();
@@ -114,18 +113,17 @@ public class AuthIntegrationTest {
     GoogleLoginResponse loginResp =
         GoogleLoginResponse.parseFrom(res.body);
     assertTrue(loginResp.getSuccess(), "Login success");
-    assertTrue(loginResp.getNeedsUsernamePrompt(), "Needs username prompt");
-    assertEqual(loginResp.getDisplayName(), "Alice", "Initial display name");
+    assertEqual(loginResp.getUsername(), "", "Initial username empty");
+    assertEqual(loginResp.getEmail(), "alice@example.com", "Email matches");
 
     String cookie = res.cookie;
     assertTrue(cookie != null && cookie.contains("doki_session="),
         "Session cookie present");
 
-    // Check user in database
-    User user = userDb.findByGoogleId("sub_12345").orElseThrow();
-    String tag = UserDb.extractTag(user.getUsername());
-    assertTrue(!tag.isEmpty(), "User tag generated");
-    assertEqual(user.getUsername(), "Alice#" + tag, "Username matches");
+    // Check user in database by email
+    User user = userDb.findByEmail("alice@example.com").orElseThrow();
+    assertEqual(user.getEmail(), "alice@example.com", "User email stored");
+    assertEqual(user.getUsername(), "", "User username empty");
 
     // 2. Reject forged / invalid token
     String invalidJwt = createSignedJwt(testKp, true);
@@ -139,15 +137,16 @@ public class AuthIntegrationTest {
         GoogleLoginResponse.parseFrom(invAuthRes.body);
     assertTrue(!invAuthResp.getSuccess(), "Rejected unverified token");
 
-    // 3. GET /api/auth/me
+    // 3. GET /api/auth/me (before setting username)
     HttpResult meRes = getProto(
         "https://localhost:" + port + "/api/auth/me", cookie);
     assertEqual(meRes.status, 200, "GetMe status");
     GetMeResponse meResp = GetMeResponse.parseFrom(meRes.body);
     assertTrue(meResp.getAuthenticated(), "Authenticated");
-    assertEqual(meResp.getDisplayName(), "Alice", "GetMe display name (tag stripped)");
+    assertEqual(meResp.getUsername(), "", "GetMe username empty initially");
+    assertEqual(meResp.getEmail(), "alice@example.com", "GetMe email present");
 
-    // 4. POST /api/auth/set_username
+    // 4. POST /api/auth/set_username (via Settings)
     SetUsernameRequest setReq = SetUsernameRequest.newBuilder()
         .setDesiredName("Alicia")
         .build();
@@ -157,11 +156,11 @@ public class AuthIntegrationTest {
     assertEqual(setRes.status, 200, "Set username status");
     SetUsernameResponse setResp = SetUsernameResponse.parseFrom(setRes.body);
     assertTrue(setResp.getSuccess(), "Set username success");
-    assertEqual(setResp.getDisplayName(), "Alicia", "Updated display name");
+    assertEqual(setResp.getUsername(), "Alicia", "Updated username");
 
-    // Verify persisted username has updated name but same tag
-    User updatedUser = userDb.findByTag(tag).orElseThrow();
-    assertEqual(updatedUser.getUsername(), "Alicia#" + tag, "Updated tag preserved");
+    // Verify persisted username is updated for this email
+    User updatedUser = userDb.findByEmail("alice@example.com").orElseThrow();
+    assertEqual(updatedUser.getUsername(), "Alicia", "Persisted username matches");
 
     // 5. Invalid username check (must be a-zA-Z only)
     SetUsernameRequest invalidReq = SetUsernameRequest.newBuilder()

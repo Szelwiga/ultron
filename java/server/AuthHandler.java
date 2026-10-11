@@ -156,7 +156,7 @@ public class AuthHandler implements HttpHandler {
     }
     SetUsernameRequest req = builder.build();
     SetUsernameResponse res =
-        authService.handleSetUsername(sessionOpt.get().getUserTag(), req);
+        authService.handleSetUsername(sessionOpt.get().getUserId(), req);
     sendProtoResponse(exchange, 200, res);
   }
 
@@ -172,13 +172,14 @@ public class AuthHandler implements HttpHandler {
     }
 
     Optional<User> userOpt =
-        userDb.findByTag(sessionOpt.get().getUserTag());
-    String name = userOpt.map(u -> UserDb.extractName(u.getUsername()))
-        .orElse("");
+        userDb.findByEmail(sessionOpt.get().getUserId());
+    String username = userOpt.map(User::getUsername).orElse("");
+    String email = userOpt.map(User::getEmail).orElse(sessionOpt.get().getUserId());
 
     GetMeResponse resp = GetMeResponse.newBuilder()
         .setAuthenticated(true)
-        .setDisplayName(name)
+        .setUsername(username)
+        .setEmail(email)
         .build();
     sendProtoResponse(exchange, 200, resp);
   }

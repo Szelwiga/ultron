@@ -71,47 +71,40 @@ public class AuthService {
 
     GoogleTokenVerifier.VerifiedToken info = verifiedOpt.get();
     Optional<User> existingUser = userDb.findByGoogleId(info.subject);
-    boolean needsPrompt;
     User user;
 
     if (existingUser.isPresent()) {
       user = existingUser.get();
-      needsPrompt = false;
     } else {
-      String tag = generateUniqueTag();
-      String sanitizedName = sanitizeGoogleName(info.name);
       user = User.newBuilder()
-          .setUsername(sanitizedName + "#" + tag)
           .setEmail(info.email)
+          .setUsername("") // default empty
           .setGoogleId(info.subject)
           .build();
       userDb.saveUser(user);
-      needsPrompt = true;
     }
 
     String sessionToken = generateSessionToken();
-    String tag = UserDb.extractTag(user.getUsername());
     long expiresAt = System.currentTimeMillis() + SESSION_DURATION_MS;
 
     sessionDb.saveSession(Session.newBuilder()
         .setSessionToken(sessionToken)
-        .setUserTag(tag)
+        .setUserId(user.getEmail())
         .setExpiresAtMs(expiresAt)
         .build());
 
-    String displayName = UserDb.extractName(user.getUsername());
     GoogleLoginResponse resp = GoogleLoginResponse.newBuilder()
         .setSuccess(true)
-        .setNeedsUsernamePrompt(needsPrompt)
-        .setDisplayName(displayName)
+        .setUsername(user.getUsername())
+        .setEmail(user.getEmail())
         .build();
 
     return new LoginResult(resp, Optional.of(sessionToken));
   }
 
-  // Updates display name (letters only) for an authenticated user tag.
+  // Updates username (letters only) for an authenticated user email.
   public SetUsernameResponse handleSetUsername(
-      String userTag, SetUsernameRequest req) throws IOException {
+      String userEmail, SetUsernameRequest req) throws IOException {
     String desiredName = req.getDesiredName();
     if (desiredName == null || !USERNAME_PATTERN.matcher(desiredName).matches()) {
       return SetUsernameResponse.newBuilder()
@@ -120,7 +113,7 @@ public class AuthService {
           .build();
     }
 
-    Optional<User> userOpt = userDb.findByTag(userTag);
+    Optional<User> userOpt = userDb.findByEmail(userEmail);
     if (userOpt.isEmpty()) {
       return SetUsernameResponse.newBuilder()
           .setSuccess(false)
@@ -130,13 +123,13 @@ public class AuthService {
 
     User user = userOpt.get();
     User updatedUser = user.toBuilder()
-        .setUsername(desiredName + "#" + userTag)
+        .setUsername(desiredName)
         .build();
     userDb.saveUser(updatedUser);
 
     return SetUsernameResponse.newBuilder()
         .setSuccess(true)
-        .setDisplayName(desiredName)
+        .setUsername(desiredName)
         .build();
   }
 
@@ -145,25 +138,5 @@ public class AuthService {
     byte[] bytes = new byte[24];
     secureRandom.nextBytes(bytes);
     return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-  }
-
-  // Generates 4-digit numeric tag unique across user database.
-  private String generateUniqueTag() throws IOException {
-    while (true) {
-      int num = 1000 + secureRandom.nextInt(9000);
-      String tag = String.valueOf(num);
-      if (userDb.findByTag(tag).isEmpty()) {
-        return tag;
-      }
-    }
-  }
-
-  // Sanitizes name from Google auth, falling back to "User" if no letters.
-  private String sanitizeGoogleName(String name) {
-    if (name == null) {
-      return "User";
-    }
-    String cleaned = name.replaceAll("[^a-zA-Z]", "");
-    return cleaned.isEmpty() ? "User" : cleaned;
   }
 }

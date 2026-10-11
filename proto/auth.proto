@@ -7,11 +7,11 @@ option java_multiple_files = true;
 
 // A user registered in the system.
 message User {
-  // Full handle in <name>#<tag> format.
-  string username = 1;
+  // Primary unique user identifier.
+  string email = 1;
 
-  // Google primary email.
-  string email = 2;
+  // Customizable username (letters only, empty by default).
+  string username = 2;
 
   // Google subject ID.
   string google_id = 3;
@@ -27,8 +27,8 @@ message Session {
   // Cryptographically secure session token.
   string session_token = 1;
 
-  // Only the part after # (tag) used to distinguish the user.
-  string user_tag = 2;
+  // Email of the user identifying the session.
+  string user_id = 2;
 
   // Expiration epoch in milliseconds.
   int64 expires_at_ms = 3;
@@ -48,11 +48,11 @@ message GoogleLoginRequest {
 message GoogleLoginResponse {
   bool success = 1;
   string error_message = 2;
-  bool needs_username_prompt = 3;
-  string display_name = 4;
+  string username = 3;
+  string email = 4;
 }
 
-// Request to set/update display name (letters only).
+// Request to set/update username (letters only).
 message SetUsernameRequest {
   string desired_name = 1;
 }
@@ -61,11 +61,12 @@ message SetUsernameRequest {
 message SetUsernameResponse {
   bool success = 1;
   string error_message = 2;
-  string display_name = 3;
+  string username = 3;
 }
 
 // Response returning currently logged in user info.
 message GetMeResponse {
   bool authenticated = 1;
-  string display_name = 2;
+  string username = 2;
+  string email = 3;
 }
