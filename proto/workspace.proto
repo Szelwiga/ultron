@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package doki.workspace;
+
+option java_package = "com.doki.proto.workspace";
+option java_multiple_files = true;
+
+// A collaboration workspace.
+message Workspace {
+  string workspace_id = 1;
+  string name = 2;
+  string description = 3;
+  string owner_email = 4;
+  repeated string collaborator_emails = 5;
+  bool is_personal = 6;
+}
+
+// Storage container for workspaces in textproto format.
+message WorkspaceDatabase {
+  repeated Workspace workspaces = 1;
+}
+
+// Request to list accessible workspaces.
+message ListWorkspacesResponse {
+  repeated Workspace workspaces = 1;
+}
+
+// Request to create a new workspace.
+message CreateWorkspaceRequest {
+  string name = 1;
+  string description = 2;
+}
+
+// Response from workspace creation.
+message CreateWorkspaceResponse {
+  bool success = 1;
+  string error_message = 2;
+  Workspace workspace = 3;
+}
+
+// Request to update workspace details.
+message UpdateWorkspaceRequest {
+  string workspace_id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+// Response from workspace update.
+message UpdateWorkspaceResponse {
+  bool success = 1;
+  string error_message = 2;
+  Workspace workspace = 3;
+}
+
+// Request to add or remove collaborator.
+message ManageCollaboratorRequest {
+  string workspace_id = 1;
+  string collaborator_email = 2;
+  enum Action {
+    ADD = 0;
+    REMOVE = 1;
+  }
+  Action action = 3;
+}
+
+// Response from managing collaborators.
+message ManageCollaboratorResponse {
+  bool success = 1;
+  string error_message = 2;
+  Workspace workspace = 3;
+}
+
+// Request to delete a workspace.
+message DeleteWorkspaceRequest {
+  string workspace_id = 1;
+}
+
+// Response from deleting a workspace.
+message DeleteWorkspaceResponse {
+  bool success = 1;
+  string error_message = 2;
+}

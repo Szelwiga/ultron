@@ -74,6 +74,14 @@ public class AuthIntegrationTest {
 
     UserDb userDb = new UserDb(userFile);
     SessionDb sessionDb = new SessionDb(sessionFile);
+    File workspaceFile = new File(testStorage, "workspaces.textproto");
+    workspaceFile.delete();
+    com.doki.dbs.WorkspaceDb workspaceDb = new com.doki.dbs.WorkspaceDb(workspaceFile);
+    com.doki.service.WorkspaceService workspaceService =
+        new com.doki.service.WorkspaceService(workspaceDb, userDb);
+    com.doki.server.WorkspaceHandler workspaceHandler =
+        new com.doki.server.WorkspaceHandler(workspaceService, sessionDb);
+
     AuthService authService = new AuthService(userDb, sessionDb, testVerifier);
     File dummyConfig = new File(testStorage, "google_login.json");
     AuthHandler authHandler =
@@ -82,6 +90,7 @@ public class AuthIntegrationTest {
     int testPort = 8444;
     DokiHttpsServer server = new DokiHttpsServer(testPort);
     server.createContext("/api/auth", authHandler);
+    server.createContext("/api/workspaces", workspaceHandler);
     server.start();
 
     try {
@@ -91,6 +100,7 @@ public class AuthIntegrationTest {
       server.stop(0);
       userFile.delete();
       sessionFile.delete();
+      workspaceFile.delete();
       dummyConfig.delete();
       testStorage.delete();
     }
@@ -172,17 +182,107 @@ public class AuthIntegrationTest {
     SetUsernameResponse invResp = SetUsernameResponse.parseFrom(invRes.body);
     assertTrue(!invResp.getSuccess(), "Validation rejected invalid characters");
 
-    // 6. Logout
+    // 6. Test Workspace Flow before logout
+    testWorkspaceFlow(port, cookie);
+
+    // 7. Logout
     HttpResult logoutRes = postProto(
         "https://localhost:" + port + "/api/auth/logout",
         new byte[0], cookie);
     assertEqual(logoutRes.status, 204, "Logout status");
 
-    // 7. GET /api/auth/me after logout
+    // 8. GET /api/auth/me after logout
     HttpResult meAfterLogout = getProto(
         "https://localhost:" + port + "/api/auth/me", cookie);
     GetMeResponse meAfterResp = GetMeResponse.parseFrom(meAfterLogout.body);
     assertTrue(!meAfterResp.getAuthenticated(), "Unauthenticated after logout");
+  }
+
+  // Tests full workspace lifecycle: list, create, update, collaborator, limits, delete.
+  private static void testWorkspaceFlow(int port, String cookie) throws Exception {
+    // 1. GET /api/workspaces (auto provisions default Personal workspace)
+    HttpResult listRes = getProto("https://localhost:" + port + "/api/workspaces", cookie);
+    assertEqual(listRes.status, 200, "List workspaces status");
+    com.doki.proto.workspace.ListWorkspacesResponse listResp =
+        com.doki.proto.workspace.ListWorkspacesResponse.parseFrom(listRes.body);
+    assertTrue(listResp.getWorkspacesCount() >= 1, "Has default workspace");
+    com.doki.proto.workspace.Workspace personalWs = listResp.getWorkspaces(0);
+    assertEqual(personalWs.getName(), "Personal", "Default workspace named Personal");
+    assertTrue(personalWs.getIsPersonal(), "Marked as personal");
+
+    // Attempting to delete Personal workspace must fail
+    com.doki.proto.workspace.DeleteWorkspaceRequest delPersonalReq =
+        com.doki.proto.workspace.DeleteWorkspaceRequest.newBuilder()
+            .setWorkspaceId(personalWs.getWorkspaceId())
+            .build();
+    HttpResult delPersRes = postProto("https://localhost:" + port + "/api/workspaces/delete",
+        delPersonalReq.toByteArray(), cookie);
+    com.doki.proto.workspace.DeleteWorkspaceResponse delPersResp =
+        com.doki.proto.workspace.DeleteWorkspaceResponse.parseFrom(delPersRes.body);
+    assertTrue(!delPersResp.getSuccess(), "Personal workspace cannot be deleted");
+
+    // 2. POST /api/workspaces (create new workspace)
+    com.doki.proto.workspace.CreateWorkspaceRequest createReq =
+        com.doki.proto.workspace.CreateWorkspaceRequest.newBuilder()
+            .setName("Project Ultron")
+            .setDescription("Core harness and AI logic")
+            .build();
+    HttpResult createRes = postProto("https://localhost:" + port + "/api/workspaces",
+        createReq.toByteArray(), cookie);
+    assertEqual(createRes.status, 200, "Create workspace status");
+    com.doki.proto.workspace.CreateWorkspaceResponse createResp =
+        com.doki.proto.workspace.CreateWorkspaceResponse.parseFrom(createRes.body);
+    assertTrue(createResp.getSuccess(), "Create workspace success");
+    String ultronWsId = createResp.getWorkspace().getWorkspaceId();
+
+    // 3. POST /api/workspaces/collaborators - check un-registered collaborator rejected
+    com.doki.proto.workspace.ManageCollaboratorRequest addNonExistent =
+        com.doki.proto.workspace.ManageCollaboratorRequest.newBuilder()
+            .setWorkspaceId(ultronWsId)
+            .setCollaboratorEmail("unknown@example.com")
+            .setAction(com.doki.proto.workspace.ManageCollaboratorRequest.Action.ADD)
+            .build();
+    HttpResult failCollabRes = postProto("https://localhost:" + port + "/api/workspaces/collaborators",
+        addNonExistent.toByteArray(), cookie);
+    com.doki.proto.workspace.ManageCollaboratorResponse failCollabResp =
+        com.doki.proto.workspace.ManageCollaboratorResponse.parseFrom(failCollabRes.body);
+    assertTrue(!failCollabResp.getSuccess(), "Non-existent user rejected as collaborator");
+
+    // Cannot add self/owner as collaborator
+    com.doki.proto.workspace.ManageCollaboratorRequest addOwner =
+        com.doki.proto.workspace.ManageCollaboratorRequest.newBuilder()
+            .setWorkspaceId(ultronWsId)
+            .setCollaboratorEmail("alice@example.com")
+            .setAction(com.doki.proto.workspace.ManageCollaboratorRequest.Action.ADD)
+            .build();
+    HttpResult failOwnerRes = postProto("https://localhost:" + port + "/api/workspaces/collaborators",
+        addOwner.toByteArray(), cookie);
+    com.doki.proto.workspace.ManageCollaboratorResponse failOwnerResp =
+        com.doki.proto.workspace.ManageCollaboratorResponse.parseFrom(failOwnerRes.body);
+    assertTrue(!failOwnerResp.getSuccess(), "Owner rejected as collaborator");
+
+    // 4. POST /api/workspaces/update (edit name/description)
+    com.doki.proto.workspace.UpdateWorkspaceRequest updateReq =
+        com.doki.proto.workspace.UpdateWorkspaceRequest.newBuilder()
+            .setWorkspaceId(ultronWsId)
+            .setName("Project Doki")
+            .setDescription("Renamed project")
+            .build();
+    HttpResult updateRes = postProto("https://localhost:" + port + "/api/workspaces/update",
+        updateReq.toByteArray(), cookie);
+    assertEqual(updateRes.status, 200, "Update workspace status");
+    com.doki.proto.workspace.UpdateWorkspaceResponse updateResp =
+        com.doki.proto.workspace.UpdateWorkspaceResponse.parseFrom(updateRes.body);
+    assertEqual(updateResp.getWorkspace().getName(), "Project Doki", "Updated name");
+
+    // 5. POST /api/workspaces/delete (delete workspace)
+    com.doki.proto.workspace.DeleteWorkspaceRequest delReq =
+        com.doki.proto.workspace.DeleteWorkspaceRequest.newBuilder()
+            .setWorkspaceId(ultronWsId)
+            .build();
+    HttpResult delRes = postProto("https://localhost:" + port + "/api/workspaces/delete",
+        delReq.toByteArray(), cookie);
+    assertEqual(delRes.status, 200, "Delete workspace status");
   }
 
   // Sends HTTPS POST request with proto payload and optional cookie.

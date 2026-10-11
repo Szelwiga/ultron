@@ -62,8 +62,13 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 20px;
+      padding: 0 16px;
       z-index: 10;
+    }
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
     .nav-brand {
       font-size: 18px;
@@ -71,17 +76,76 @@
       color: var(--primary);
       letter-spacing: -0.5px;
     }
+
+    /* Workspace Switcher in Top-Left */
+    .workspace-switcher {
+      position: relative;
+    }
+    .workspace-select-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .workspace-select-btn:hover {
+      background: var(--border-color);
+    }
+    .workspace-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      box-shadow: var(--card-shadow);
+      min-width: 220px;
+      display: none;
+      flex-direction: column;
+      z-index: 20;
+    }
+    .workspace-menu.open {
+      display: flex;
+    }
+    .workspace-menu-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .workspace-menu-item:hover {
+      background: var(--bg-tertiary);
+    }
+    .workspace-menu-item.active {
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .workspace-menu-divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 4px 0;
+    }
+
     .nav-actions {
       display: flex;
       align-items: center;
       gap: 12px;
     }
     .user-pill {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       color: var(--text-primary);
       background-color: var(--bg-tertiary);
-      padding: 4px 12px;
+      padding: 4px 10px;
       border-radius: 20px;
     }
 
@@ -108,7 +172,7 @@
       margin-bottom: 8px;
     }
 
-    /* Settings Tile (Takes full canvas) */
+    /* Settings Tile (Takes Full Canvas) */
     #settings-tile {
       position: absolute;
       top: 0;
@@ -126,7 +190,7 @@
       display: flex;
     }
     .settings-content {
-      max-width: 600px;
+      max-width: 680px;
       margin: 0 auto;
       width: 100%;
     }
@@ -142,8 +206,18 @@
       font-size: 22px;
       font-weight: 600;
     }
+    .settings-section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 28px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
     .settings-group {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .settings-group label {
       display: block;
@@ -153,12 +227,52 @@
       margin-bottom: 8px;
     }
     .settings-readonly-value {
-      font-size: 15px;
+      font-size: 14px;
       color: var(--text-primary);
       padding: 8px 12px;
       background: var(--bg-tertiary);
       border-radius: 6px;
       border: 1px solid var(--border-color);
+    }
+
+    /* Workspace Management Card */
+    .ws-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .ws-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .ws-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .ws-badge {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .collab-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 6px;
     }
   </style>
 </head>
@@ -188,7 +302,27 @@
     <div id="main-view" class="view" style="flex-direction: column;">
       <!-- Top Navigation Bar (web/nav) -->
       <header id="top-nav">
-        <div class="nav-brand">Doki</div>
+        <div class="nav-left">
+          <div class="nav-brand">Doki</div>
+
+          <!-- Workspace Switcher in Top-Left Corner -->
+          <div class="workspace-switcher">
+            <button class="workspace-select-btn" id="ws-switcher-btn">
+              <span id="current-ws-name">My Workspace</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
+            <div class="workspace-menu" id="ws-switcher-menu">
+              <div id="ws-switcher-list"></div>
+              <div class="workspace-menu-divider"></div>
+              <div class="workspace-menu-item" id="ws-manage-menu-item">
+                <span>Manage Workspaces...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="nav-actions">
           <span class="user-pill" id="nav-user-display">User</span>
           <!-- Settings Icon Button -->
@@ -206,7 +340,7 @@
       <div id="canvas-container">
         <!-- Default Workspace Canvas -->
         <div id="workspace-canvas">
-          <h2>Workspace</h2>
+          <h2 id="canvas-ws-title">Workspace</h2>
           <p>Document workspace tiles will appear here.</p>
         </div>
 
@@ -214,13 +348,18 @@
         <div id="settings-tile">
           <div class="settings-content">
             <div class="settings-header">
-              <h2>User Settings</h2>
+              <h2>Settings</h2>
               <button class="btn btn-secondary" id="close-settings-btn">Close</button>
             </div>
 
             <!-- Mandatory Username Banner (shown if username is empty) -->
             <div id="username-banner" class="banner banner-warning" style="display: none;">
               <span>Please set yourself a username</span>
+            </div>
+
+            <!-- Profile Section -->
+            <div class="settings-section-title">
+              <span>Profile</span>
             </div>
 
             <div class="settings-group">
@@ -236,6 +375,27 @@
               </div>
               <div id="settings-feedback" style="font-size: 13px; margin-top: 8px; display: none;"></div>
             </div>
+
+            <!-- Workspaces Section -->
+            <div class="settings-section-title">
+              <span>Workspaces</span>
+              <span id="ws-count-badge" style="font-size: 13px; font-weight: normal; color: var(--text-secondary);"></span>
+            </div>
+
+            <!-- Create New Workspace Form -->
+            <div class="ws-card">
+              <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px;">Create New Workspace</div>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <input type="text" id="new-ws-name" class="input-text" placeholder="Workspace name">
+                <input type="text" id="new-ws-desc" class="input-text" placeholder="Description (optional)">
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="btn btn-primary" id="create-ws-btn">Create Workspace</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Workspaces List -->
+            <div id="workspaces-list-container"></div>
           </div>
         </div>
       </div>

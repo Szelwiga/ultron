@@ -2,6 +2,7 @@ package com.doki.ultron;
 
 import com.doki.dbs.SessionDb;
 import com.doki.dbs.UserDb;
+import com.doki.dbs.WorkspaceDb;
 import com.doki.server.AuthHandler;
 import com.doki.server.DokiHttpsServer;
 import com.doki.service.AuthService;
@@ -51,11 +52,18 @@ public class Main {
           new AuthService(userDb, sessionDb, tokenVerifier);
       AuthHandler authHandler =
           new AuthHandler(authService, sessionDb, userDb, configFile);
+      WorkspaceDb workspaceDb =
+          new WorkspaceDb(new File(storageDir, "workspaces.textproto"));
+      com.doki.service.WorkspaceService workspaceService =
+          new com.doki.service.WorkspaceService(workspaceDb, userDb);
+      com.doki.server.WorkspaceHandler workspaceHandler =
+          new com.doki.server.WorkspaceHandler(workspaceService, sessionDb);
       com.doki.server.StaticFileHandler staticHandler =
           new com.doki.server.StaticFileHandler(new File("web"));
 
       DokiHttpsServer server = new DokiHttpsServer(port);
       server.createContext("/api/auth", authHandler);
+      server.createContext("/api/workspaces", workspaceHandler);
       server.createContext("/", staticHandler);
 
       server.start();
