@@ -7,16 +7,18 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.Optional;
 
 /**
  * Serves static web frontend assets from the web/ directory.
  */
 public class StaticFileHandler implements HttpHandler {
-  private final File webRoot;
+  private final Path webRootPath;
 
   // Initializes static file handler pointing to the frontend root folder.
   public StaticFileHandler(File webRoot) {
-    this.webRoot = webRoot;
+    this.webRootPath = webRoot.toPath().toAbsolutePath().normalize();
   }
 
   // Handles incoming HTTP requests for static assets and fallback index.
@@ -28,15 +30,16 @@ public class StaticFileHandler implements HttpHandler {
       return;
     }
 
-    String path = exchange.getRequestURI().getPath();
-    File target = resolveFile(path);
+    String requestPath = exchange.getRequestURI().getPath();
+    Optional<File> targetOpt = resolveFile(requestPath);
 
-    if (target == null || !target.exists() || target.isDirectory()) {
-      target = new File(webRoot, "login/index.html");
-      if (!target.exists()) {
-        target = new File(webRoot, "index.html");
-      }
-    }
+    File target = targetOpt.filter(File::exists)
+        .filter(File::isFile)
+        .orElseGet(() -> {
+          File fallback = webRootPath.resolve("login/index.html").toFile();
+          return fallback.exists() ?
+              fallback : webRootPath.resolve("index.html").toFile();
+        });
 
     if (!target.exists() || !target.isFile()) {
       byte[] notFound = "Not Found".getBytes(StandardCharsets.UTF_8);
@@ -61,20 +64,16 @@ public class StaticFileHandler implements HttpHandler {
   }
 
   // Resolves requested relative path ensuring it stays within web root.
-  private File resolveFile(String path) {
+  private Optional<File> resolveFile(String path) {
     if (path == null || path.equals("/") || path.isBlank()) {
-      return new File(webRoot, "login/index.html");
+      return Optional.of(webRootPath.resolve("login/index.html").toFile());
     }
     String cleanPath = path.startsWith("/") ? path.substring(1) : path;
-    File file = new File(webRoot, cleanPath);
-    try {
-      if (file.getCanonicalPath().startsWith(webRoot.getCanonicalPath())) {
-        return file;
-      }
-    } catch (IOException e) {
-      return null;
+    Path resolved = webRootPath.resolve(cleanPath).normalize();
+    if (resolved.startsWith(webRootPath)) {
+      return Optional.of(resolved.toFile());
     }
-    return null;
+    return Optional.empty();
   }
 
   // Determines MIME type based on file extension.

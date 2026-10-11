@@ -11,14 +11,18 @@ import com.doki.proto.auth.User;
 import com.doki.server.AuthHandler;
 import com.doki.server.DokiHttpsServer;
 import com.doki.service.AuthService;
+import com.doki.service.GoogleTokenVerifier;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
+import java.security.Signature;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.Optional;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -41,11 +45,40 @@ public class AuthIntegrationTest {
     userFile.delete();
     sessionFile.delete();
 
+    // Generate test RSA key pair for simulating Google signed tokens
+    KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+    kpg.initialize(2048);
+    KeyPair testKp = kpg.generateKeyPair();
+
+    String testClientId = "test-client-id";
+    GoogleTokenVerifier testVerifier = new GoogleTokenVerifier(testClientId) {
+      @Override
+      public Optional<VerifiedToken> verify(String token) {
+        // Direct test verification using test key pair
+        try {
+          String[] parts = token.split("\\.");
+          if (parts.length != 3) return Optional.empty();
+          byte[] signedContent = (parts[0] + "." + parts[1]).getBytes();
+          byte[] sigBytes = Base64.getUrlDecoder().decode(parts[2]);
+          Signature sig = Signature.getInstance("SHA256withRSA");
+          sig.initVerify(testKp.getPublic());
+          sig.update(signedContent);
+          if (!sig.verify(sigBytes)) return Optional.empty();
+          String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+          if (payload.contains("\"invalid\":true")) return Optional.empty();
+          return Optional.of(new VerifiedToken("sub_12345", "alice@example.com", "Alice"));
+        } catch (Exception e) {
+          return Optional.empty();
+        }
+      }
+    };
+
     UserDb userDb = new UserDb(userFile);
     SessionDb sessionDb = new SessionDb(sessionFile);
-    AuthService authService = new AuthService(userDb, sessionDb);
+    AuthService authService = new AuthService(userDb, sessionDb, testVerifier);
+    File dummyConfig = new File(testStorage, "google_login.json");
     AuthHandler authHandler =
-        new AuthHandler(authService, sessionDb, userDb);
+        new AuthHandler(authService, sessionDb, userDb, dummyConfig);
 
     int testPort = 8444;
     DokiHttpsServer server = new DokiHttpsServer(testPort);
@@ -53,25 +86,25 @@ public class AuthIntegrationTest {
     server.start();
 
     try {
-      testAuthFlow(testPort, userDb);
+      testAuthFlow(testPort, userDb, testKp);
       System.out.println("ALL INTEGRATION TESTS PASSED!");
     } finally {
       server.stop(0);
       userFile.delete();
       sessionFile.delete();
+      dummyConfig.delete();
       testStorage.delete();
     }
   }
 
   // Executes login, get_me, set_username, and logout steps.
-  private static void testAuthFlow(int port, UserDb userDb)
-      throws Exception {
-    String testGoogleId = "google_user_12345";
-    String fakeJwt = createFakeJwt(testGoogleId, "alice@example.com", "Alice");
+  private static void testAuthFlow(
+      int port, UserDb userDb, KeyPair testKp) throws Exception {
+    String signedJwt = createSignedJwt(testKp, false);
 
     // 1. Google Login (First time)
     GoogleLoginRequest loginReq = GoogleLoginRequest.newBuilder()
-        .setIdToken(fakeJwt)
+        .setIdToken(signedJwt)
         .build();
     HttpResult res = postProto(
         "https://localhost:" + port + "/api/auth/google",
@@ -89,12 +122,24 @@ public class AuthIntegrationTest {
         "Session cookie present");
 
     // Check user in database
-    User user = userDb.findByGoogleId(testGoogleId).orElseThrow();
+    User user = userDb.findByGoogleId("sub_12345").orElseThrow();
     String tag = UserDb.extractTag(user.getUsername());
     assertTrue(!tag.isEmpty(), "User tag generated");
     assertEqual(user.getUsername(), "Alice#" + tag, "Username matches");
 
-    // 2. GET /api/auth/me
+    // 2. Reject forged / invalid token
+    String invalidJwt = createSignedJwt(testKp, true);
+    GoogleLoginRequest invalidLoginReq = GoogleLoginRequest.newBuilder()
+        .setIdToken(invalidJwt)
+        .build();
+    HttpResult invAuthRes = postProto(
+        "https://localhost:" + port + "/api/auth/google",
+        invalidLoginReq.toByteArray(), null);
+    GoogleLoginResponse invAuthResp =
+        GoogleLoginResponse.parseFrom(invAuthRes.body);
+    assertTrue(!invAuthResp.getSuccess(), "Rejected unverified token");
+
+    // 3. GET /api/auth/me
     HttpResult meRes = getProto(
         "https://localhost:" + port + "/api/auth/me", cookie);
     assertEqual(meRes.status, 200, "GetMe status");
@@ -102,7 +147,7 @@ public class AuthIntegrationTest {
     assertTrue(meResp.getAuthenticated(), "Authenticated");
     assertEqual(meResp.getDisplayName(), "Alice", "GetMe display name (tag stripped)");
 
-    // 3. POST /api/auth/set_username
+    // 4. POST /api/auth/set_username
     SetUsernameRequest setReq = SetUsernameRequest.newBuilder()
         .setDesiredName("Alicia")
         .build();
@@ -118,7 +163,7 @@ public class AuthIntegrationTest {
     User updatedUser = userDb.findByTag(tag).orElseThrow();
     assertEqual(updatedUser.getUsername(), "Alicia#" + tag, "Updated tag preserved");
 
-    // 4. Invalid username check (must be a-zA-Z only)
+    // 5. Invalid username check (must be a-zA-Z only)
     SetUsernameRequest invalidReq = SetUsernameRequest.newBuilder()
         .setDesiredName("Alicia123!")
         .build();
@@ -128,13 +173,13 @@ public class AuthIntegrationTest {
     SetUsernameResponse invResp = SetUsernameResponse.parseFrom(invRes.body);
     assertTrue(!invResp.getSuccess(), "Validation rejected invalid characters");
 
-    // 5. Logout
+    // 6. Logout
     HttpResult logoutRes = postProto(
         "https://localhost:" + port + "/api/auth/logout",
         new byte[0], cookie);
     assertEqual(logoutRes.status, 204, "Logout status");
 
-    // 6. GET /api/auth/me after logout
+    // 7. GET /api/auth/me after logout
     HttpResult meAfterLogout = getProto(
         "https://localhost:" + port + "/api/auth/me", cookie);
     GetMeResponse meAfterResp = GetMeResponse.parseFrom(meAfterLogout.body);
@@ -203,15 +248,19 @@ public class AuthIntegrationTest {
     }
   }
 
-  // Creates simple dummy JWT with given payload claims.
-  private static String createFakeJwt(String sub, String email, String name) {
-    String header = "{\"alg\":\"none\"}";
-    String payload = String.format(
-        "{\"sub\":\"%s\",\"email\":\"%s\",\"name\":\"%s\"}",
-        sub, email, name);
+  // Creates RSA SHA256-signed test JWT.
+  private static String createSignedJwt(KeyPair kp, boolean invalid) throws Exception {
+    String header = "{\"alg\":\"RS256\",\"kid\":\"test-key-1\"}";
+    String payload = invalid ? "{\"invalid\":true}" :
+        "{\"sub\":\"sub_12345\",\"email\":\"alice@example.com\",\"name\":\"Alice\"}";
     Base64.Encoder enc = Base64.getUrlEncoder().withoutPadding();
-    return enc.encodeToString(header.getBytes()) + "." +
-        enc.encodeToString(payload.getBytes()) + ".sig";
+    String signingInput = enc.encodeToString(header.getBytes()) + "." +
+        enc.encodeToString(payload.getBytes());
+    Signature sig = Signature.getInstance("SHA256withRSA");
+    sig.initSign(kp.getPrivate());
+    sig.update(signingInput.getBytes());
+    byte[] signatureBytes = sig.sign();
+    return signingInput + "." + enc.encodeToString(signatureBytes);
   }
 
   // Configures SSL context to trust self-signed local certs for integration tests.

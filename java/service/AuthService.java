@@ -9,7 +9,6 @@ import com.doki.proto.auth.SetUsernameRequest;
 import com.doki.proto.auth.SetUsernameResponse;
 import com.doki.proto.auth.User;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Optional;
@@ -26,20 +25,25 @@ public class AuthService {
 
   private final UserDb userDb;
   private final SessionDb sessionDb;
+  private final GoogleTokenVerifier tokenVerifier;
   private final SecureRandom secureRandom = new SecureRandom();
 
-  // Initializes AuthService with databases.
-  public AuthService(UserDb userDb, SessionDb sessionDb) {
+  // Initializes AuthService with databases and token verifier.
+  public AuthService(
+      UserDb userDb,
+      SessionDb sessionDb,
+      GoogleTokenVerifier tokenVerifier) {
     this.userDb = userDb;
     this.sessionDb = sessionDb;
+    this.tokenVerifier = tokenVerifier;
   }
 
-  // Result object holding API response and generated session token if any.
+  // Result object holding API response and optional generated session token.
   public static class LoginResult {
     public final GoogleLoginResponse response;
-    public final String sessionToken;
+    public final Optional<String> sessionToken;
 
-    public LoginResult(GoogleLoginResponse resp, String token) {
+    public LoginResult(GoogleLoginResponse resp, Optional<String> token) {
       this.response = resp;
       this.sessionToken = token;
     }
@@ -53,18 +57,20 @@ public class AuthService {
       return new LoginResult(GoogleLoginResponse.newBuilder()
           .setSuccess(false)
           .setErrorMessage("Missing ID token")
-          .build(), null);
+          .build(), Optional.empty());
     }
 
-    GoogleUserInfo info = parseGoogleIdToken(idToken);
-    if (info == null || info.googleId.isBlank()) {
+    Optional<GoogleTokenVerifier.VerifiedToken> verifiedOpt =
+        tokenVerifier.verify(idToken);
+    if (verifiedOpt.isEmpty()) {
       return new LoginResult(GoogleLoginResponse.newBuilder()
           .setSuccess(false)
-          .setErrorMessage("Invalid ID token")
-          .build(), null);
+          .setErrorMessage("Invalid or unverified ID token")
+          .build(), Optional.empty());
     }
 
-    Optional<User> existingUser = userDb.findByGoogleId(info.googleId);
+    GoogleTokenVerifier.VerifiedToken info = verifiedOpt.get();
+    Optional<User> existingUser = userDb.findByGoogleId(info.subject);
     boolean needsPrompt;
     User user;
 
@@ -77,7 +83,7 @@ public class AuthService {
       user = User.newBuilder()
           .setUsername(sanitizedName + "#" + tag)
           .setEmail(info.email)
-          .setGoogleId(info.googleId)
+          .setGoogleId(info.subject)
           .build();
       userDb.saveUser(user);
       needsPrompt = true;
@@ -100,7 +106,7 @@ public class AuthService {
         .setDisplayName(displayName)
         .build();
 
-    return new LoginResult(resp, sessionToken);
+    return new LoginResult(resp, Optional.of(sessionToken));
   }
 
   // Updates display name (letters only) for an authenticated user tag.
@@ -134,7 +140,7 @@ public class AuthService {
         .build();
   }
 
-  // Generates 16-byte random hex/base64 session token.
+  // Generates 24-byte random url-safe base64 session token.
   private String generateSessionToken() {
     byte[] bytes = new byte[24];
     secureRandom.nextBytes(bytes);
@@ -159,56 +165,5 @@ public class AuthService {
     }
     String cleaned = name.replaceAll("[^a-zA-Z]", "");
     return cleaned.isEmpty() ? "User" : cleaned;
-  }
-
-  // Helper DTO for extracted Google token payload.
-  public static class GoogleUserInfo {
-    public final String googleId;
-    public final String email;
-    public final String name;
-
-    public GoogleUserInfo(String googleId, String email, String name) {
-      this.googleId = googleId;
-      this.email = email;
-      this.name = name;
-    }
-  }
-
-  // Parses JWT payload (extracts sub, email, name).
-  public static GoogleUserInfo parseGoogleIdToken(String token) {
-    String[] parts = token.split("\\.");
-    if (parts.length < 2) {
-      return new GoogleUserInfo(token, "user@example.com", "User");
-    }
-    try {
-      byte[] decoded = Base64.getUrlDecoder().decode(parts[1]);
-      String json = new String(decoded, StandardCharsets.UTF_8);
-      String sub = extractJsonField(json, "sub");
-      String email = extractJsonField(json, "email");
-      String name = extractJsonField(json, "name");
-      if (sub == null || sub.isEmpty()) {
-        sub = token;
-      }
-      return new GoogleUserInfo(
-          sub,
-          email != null ? email : "",
-          name != null ? name : "User");
-    } catch (Exception e) {
-      return new GoogleUserInfo(token, "user@example.com", "User");
-    }
-  }
-
-  // Extracts simple string field value from JSON text.
-  private static String extractJsonField(String json, String field) {
-    String needle = "\"" + field + "\"";
-    int idx = json.indexOf(needle);
-    if (idx < 0) return null;
-    int colon = json.indexOf(':', idx + needle.length());
-    if (colon < 0) return null;
-    int start = json.indexOf('"', colon + 1);
-    if (start < 0) return null;
-    int end = json.indexOf('"', start + 1);
-    if (end < 0) return null;
-    return json.substring(start + 1, end);
   }
 }

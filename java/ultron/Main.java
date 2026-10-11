@@ -31,9 +31,26 @@ public class Main {
       UserDb userDb = new UserDb(new File(storageDir, "users.textproto"));
       SessionDb sessionDb =
           new SessionDb(new File(storageDir, "sessions.textproto"));
-      AuthService authService = new AuthService(userDb, sessionDb);
+      File configFile = new File("env/google_login.json");
+      String clientId = "";
+      if (configFile.exists()) {
+        String json = java.nio.file.Files.readString(configFile.toPath());
+        int idx = json.indexOf("\"client_id\":");
+        if (idx >= 0) {
+          int start = json.indexOf('"', idx + 12);
+          int end = json.indexOf('"', start + 1);
+          if (start >= 0 && end > start) {
+            clientId = json.substring(start + 1, end);
+          }
+        }
+      }
+
+      com.doki.service.GoogleTokenVerifier tokenVerifier =
+          new com.doki.service.GoogleTokenVerifier(clientId);
+      AuthService authService =
+          new AuthService(userDb, sessionDb, tokenVerifier);
       AuthHandler authHandler =
-          new AuthHandler(authService, sessionDb, userDb);
+          new AuthHandler(authService, sessionDb, userDb, configFile);
       com.doki.server.StaticFileHandler staticHandler =
           new com.doki.server.StaticFileHandler(new File("web"));
 
