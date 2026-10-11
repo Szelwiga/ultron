@@ -29,9 +29,10 @@ communication as proto over rest API and Make as the build system.
 * web/import/ - a tile for importing new files
 * web/login/ - UI for logging in
 * proto/ - all proto definitions
-* run/build - build artifacts should land there
-* run/logs - logging output should go there
-* run/storage - databases
+* run/build/ - build artifacts should land there
+* run/logs/ - logging output should go there
+* run/storage/ - databases
+* specs/ - md files for specification
 
 ### Auth
 

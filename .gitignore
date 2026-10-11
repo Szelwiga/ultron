@@ -1,0 +1,6 @@
+run/build/
+run/logs/
+run/storage/
+run/keystore.jks
+env/
+*.swp
