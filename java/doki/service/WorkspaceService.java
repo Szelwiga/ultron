@@ -13,10 +13,10 @@ import com.doki.proto.workspace.UpdateWorkspaceRequest;
 import com.doki.proto.workspace.UpdateWorkspaceResponse;
 import com.doki.proto.workspace.Workspace;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service managing workspaces, ownership limits, and collaborator access.
@@ -25,7 +25,6 @@ public class WorkspaceService {
   public static final int MAX_OWNED_WORKSPACES = 10;
   private final WorkspaceDb workspaceDb;
   private final UserDb userDb;
-  private final SecureRandom secureRandom = new SecureRandom();
 
   // Constructs WorkspaceService with workspace and user databases.
   public WorkspaceService(WorkspaceDb workspaceDb, UserDb userDb) {
@@ -59,8 +58,7 @@ public class WorkspaceService {
           .build();
     }
 
-    String id = "ws_" + Long.toHexString(
-        Math.abs(secureRandom.nextLong())).substring(0, 8);
+    String id = UUID.randomUUID().toString();
     Workspace ws = Workspace.newBuilder()
         .setWorkspaceId(id)
         .setName(name)
@@ -83,8 +81,7 @@ public class WorkspaceService {
         w.getIsPersonal() && w.getOwnerEmail().equalsIgnoreCase(userEmail));
 
     if (!hasPersonal) {
-      String id = "ws_personal_" + Long.toHexString(
-          Math.abs(secureRandom.nextLong())).substring(0, 6);
+      String id = UUID.randomUUID().toString();
       Workspace ws = Workspace.newBuilder()
           .setWorkspaceId(id)
           .setName("Personal")
@@ -135,7 +132,7 @@ public class WorkspaceService {
         .build();
   }
 
-  // Adds or removes collaborator emails validating registered user and owner status.
+  // Adds or removes collaborator emails validating registered user and owner.
   public ManageCollaboratorResponse manageCollaborator(
       String userEmail, ManageCollaboratorRequest req) throws IOException {
     Optional<Workspace> wsOpt = workspaceDb.findById(req.getWorkspaceId());
@@ -174,7 +171,8 @@ public class WorkspaceService {
       if (userDb.findByEmail(targetEmail).isEmpty()) {
         return ManageCollaboratorResponse.newBuilder()
             .setSuccess(false)
-            .setErrorMessage("No registered user found with email " + targetEmail)
+            .setErrorMessage(
+                "No registered user found with email " + targetEmail)
             .build();
       }
     }

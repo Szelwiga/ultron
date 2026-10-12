@@ -13,7 +13,7 @@ the top navigation bar.
 
 ### 2.1 Entity Structure
 Each workspace record contains:
-- `workspace_id`: Unique identifier (UUID or alphanumeric ID, e.g. `ws_a1b2c3d4`).
+- `workspace_id`: Standard UUID string (e.g. `487db7ab-d668-4cb1-9b15-2d42e2088950`).
 - `name`: Human-readable name (1–64 characters).
 - `description`: Optional text description (up to 256 characters).
 - `owner_email`: Email of the workspace creator/owner.
@@ -74,7 +74,7 @@ message WorkspaceDatabase {
 Example in `run/storage/workspaces.textproto`:
 ```textproto
 workspaces {
-  workspace_id: "ws_9f8e7d6c5b4a"
+  workspace_id: "487db7ab-d668-4cb1-9b15-2d42e2088950"
   name: "Research & Design"
   description: "Doki design specs and documentation"
   owner_email: "alice@example.com"

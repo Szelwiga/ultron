@@ -210,6 +210,7 @@ public class AuthIntegrationTest {
     com.doki.proto.workspace.Workspace personalWs = listResp.getWorkspaces(0);
     assertEqual(personalWs.getName(), "Personal", "Default workspace named Personal");
     assertTrue(personalWs.getIsPersonal(), "Marked as personal");
+    java.util.UUID.fromString(personalWs.getWorkspaceId());
 
     // Attempting to delete Personal workspace must fail
     com.doki.proto.workspace.DeleteWorkspaceRequest delPersonalReq =
@@ -235,6 +236,7 @@ public class AuthIntegrationTest {
         com.doki.proto.workspace.CreateWorkspaceResponse.parseFrom(createRes.body);
     assertTrue(createResp.getSuccess(), "Create workspace success");
     String ultronWsId = createResp.getWorkspace().getWorkspaceId();
+    java.util.UUID.fromString(ultronWsId);
 
     // 3. POST /api/workspaces/collaborators - check un-registered collaborator rejected
     com.doki.proto.workspace.ManageCollaboratorRequest addNonExistent =
