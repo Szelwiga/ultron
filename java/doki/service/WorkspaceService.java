@@ -1,7 +1,7 @@
-package com.doki.service;
+package com.doki.workspace.service;
 
 import com.doki.dbs.UserDb;
-import com.doki.dbs.WorkspaceDb;
+import com.doki.workspace.dbs.WorkspaceDb;
 import com.doki.proto.workspace.CreateWorkspaceRequest;
 import com.doki.proto.workspace.CreateWorkspaceResponse;
 import com.doki.proto.workspace.DeleteWorkspaceRequest;

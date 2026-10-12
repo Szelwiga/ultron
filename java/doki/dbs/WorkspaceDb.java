@@ -1,4 +1,4 @@
-package com.doki.dbs;
+package com.doki.workspace.dbs;
 
 import com.doki.proto.workspace.Workspace;
 import com.doki.proto.workspace.WorkspaceDatabase;

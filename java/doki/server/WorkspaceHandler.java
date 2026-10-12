@@ -1,4 +1,4 @@
-package com.doki.server;
+package com.doki.workspace.server;
 
 import com.doki.dbs.SessionDb;
 import com.doki.proto.auth.Session;
@@ -11,7 +11,7 @@ import com.doki.proto.workspace.ManageCollaboratorRequest;
 import com.doki.proto.workspace.ManageCollaboratorResponse;
 import com.doki.proto.workspace.UpdateWorkspaceRequest;
 import com.doki.proto.workspace.UpdateWorkspaceResponse;
-import com.doki.service.WorkspaceService;
+import com.doki.workspace.service.WorkspaceService;
 import com.google.protobuf.Message;
 import com.google.protobuf.util.JsonFormat;
 import com.sun.net.httpserver.HttpExchange;

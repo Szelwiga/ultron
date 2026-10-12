@@ -2,10 +2,12 @@ package com.doki.ultron;
 
 import com.doki.dbs.SessionDb;
 import com.doki.dbs.UserDb;
-import com.doki.dbs.WorkspaceDb;
 import com.doki.server.AuthHandler;
 import com.doki.server.DokiHttpsServer;
 import com.doki.service.AuthService;
+import com.doki.workspace.dbs.WorkspaceDb;
+import com.doki.workspace.server.WorkspaceHandler;
+import com.doki.workspace.service.WorkspaceService;
 import java.io.File;
 
 /**
@@ -54,10 +56,10 @@ public class Main {
           new AuthHandler(authService, sessionDb, userDb, configFile);
       WorkspaceDb workspaceDb =
           new WorkspaceDb(new File(storageDir, "workspaces.textproto"));
-      com.doki.service.WorkspaceService workspaceService =
-          new com.doki.service.WorkspaceService(workspaceDb, userDb);
-      com.doki.server.WorkspaceHandler workspaceHandler =
-          new com.doki.server.WorkspaceHandler(workspaceService, sessionDb);
+      WorkspaceService workspaceService =
+          new WorkspaceService(workspaceDb, userDb);
+      WorkspaceHandler workspaceHandler =
+          new WorkspaceHandler(workspaceService, sessionDb);
       com.doki.server.StaticFileHandler staticHandler =
           new com.doki.server.StaticFileHandler(new File("web"));
 

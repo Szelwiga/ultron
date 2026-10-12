@@ -76,11 +76,12 @@ public class AuthIntegrationTest {
     SessionDb sessionDb = new SessionDb(sessionFile);
     File workspaceFile = new File(testStorage, "workspaces.textproto");
     workspaceFile.delete();
-    com.doki.dbs.WorkspaceDb workspaceDb = new com.doki.dbs.WorkspaceDb(workspaceFile);
-    com.doki.service.WorkspaceService workspaceService =
-        new com.doki.service.WorkspaceService(workspaceDb, userDb);
-    com.doki.server.WorkspaceHandler workspaceHandler =
-        new com.doki.server.WorkspaceHandler(workspaceService, sessionDb);
+    com.doki.workspace.dbs.WorkspaceDb workspaceDb =
+        new com.doki.workspace.dbs.WorkspaceDb(workspaceFile);
+    com.doki.workspace.service.WorkspaceService workspaceService =
+        new com.doki.workspace.service.WorkspaceService(workspaceDb, userDb);
+    com.doki.workspace.server.WorkspaceHandler workspaceHandler =
+        new com.doki.workspace.server.WorkspaceHandler(workspaceService, sessionDb);
 
     AuthService authService = new AuthService(userDb, sessionDb, testVerifier);
     File dummyConfig = new File(testStorage, "google_login.json");

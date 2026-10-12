@@ -9,7 +9,7 @@ PROTO_JAR = /usr/share/java/protobuf.jar
 PROTO_UTIL_JAR = /usr/share/java/protobuf-util.jar
 CLASSPATH = $(PROTO_JAR):$(PROTO_UTIL_JAR)
 
-PROTOS = $(wildcard proto/*.proto)
+PROTOS = $(shell find proto -name "*.proto")
 JAVA_SRCS = $(shell find java -name "*.java" 2>/dev/null)
 
 .PHONY: all proto compile jar run clean test

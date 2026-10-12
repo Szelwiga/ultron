@@ -66,7 +66,7 @@ public class StaticFileHandler implements HttpHandler {
   // Resolves requested relative path ensuring it stays within web root.
   private Optional<File> resolveFile(String path) {
     if (path == null || path.equals("/") || path.isBlank()) {
-      return Optional.of(webRootPath.resolve("login/index.html").toFile());
+      return Optional.of(webRootPath.resolve("index.html").toFile());
     }
     String cleanPath = path.startsWith("/") ? path.substring(1) : path;
     Path resolved = webRootPath.resolve(cleanPath).normalize();

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doki Studio</title>
+  <link rel="stylesheet" href="/common/theme.css">
+  <style>
+    /* App Shell Layout */
+    #app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      background-color: var(--bg-secondary);
+    }
+
+    /* Top Nav Bar (web/nav) */
+    #top-nav {
+      height: var(--header-height);
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 10;
+    }
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .nav-brand {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+
+    /* Workspace Switcher in Top-Left */
+    .workspace-switcher {
+      position: relative;
+    }
+    .workspace-select-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .workspace-select-btn:hover {
+      background: var(--border-color);
+    }
+    .workspace-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      box-shadow: var(--card-shadow);
+      min-width: 220px;
+      display: none;
+      flex-direction: column;
+      z-index: 20;
+    }
+    .workspace-menu.open {
+      display: flex;
+    }
+    .workspace-menu-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .workspace-menu-item:hover {
+      background: var(--bg-tertiary);
+    }
+    .workspace-menu-item.active {
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .workspace-menu-divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 4px 0;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .user-pill {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      background-color: var(--bg-tertiary);
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* Canvas (web/canvas) */
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+    }
+
+    /* Workspace Empty State */
+    #workspace-canvas {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+    #workspace-canvas h2 {
+      font-size: 20px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    /* Settings Tile (Takes Full Canvas) */
+    #settings-tile {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-primary);
+      display: none;
+      flex-direction: column;
+      padding: 32px;
+      overflow-y: auto;
+      z-index: 5;
+    }
+    #settings-tile.open {
+      display: flex;
+    }
+    .settings-content {
+      max-width: 680px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .settings-header h2 {
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .settings-section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 28px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .settings-group {
+      margin-bottom: 20px;
+    }
+    .settings-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .settings-readonly-value {
+      font-size: 14px;
+      color: var(--text-primary);
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Workspace Management Card */
+    .ws-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .ws-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .ws-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .ws-badge {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .collab-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app-container">
+    <!-- Top Navigation Bar (web/nav) -->
+    <header id="top-nav">
+      <div class="nav-left">
+        <div class="nav-brand">Doki</div>
+
+        <!-- Workspace Switcher in Top-Left Corner -->
+        <div class="workspace-switcher">
+          <button class="workspace-select-btn" id="ws-switcher-btn">
+            <span id="current-ws-name">Personal</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </button>
+          <div class="workspace-menu" id="ws-switcher-menu">
+            <div id="ws-switcher-list"></div>
+            <div class="workspace-menu-divider"></div>
+            <div class="workspace-menu-item" id="ws-manage-menu-item">
+              <span>Manage Workspaces...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <span class="user-pill" id="nav-user-display">User</span>
+        <!-- Settings Icon Button -->
+        <button class="btn-icon" id="nav-settings-btn" title="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+        <button class="btn btn-secondary" id="nav-logout-btn"
+                style="padding: 6px 12px;">Logout</button>
+      </div>
+    </header>
+
+    <!-- Canvas Container (web/canvas) -->
+    <div id="canvas-container">
+      <!-- Default Workspace Canvas -->
+      <div id="workspace-canvas">
+        <h2 id="canvas-ws-title">Workspace</h2>
+        <p>Document workspace tiles will appear here.</p>
+      </div>
+
+      <!-- Settings Tile (Takes Full Canvas) -->
+      <div id="settings-tile">
+        <div class="settings-content">
+          <div class="settings-header">
+            <h2>Settings</h2>
+            <button class="btn btn-secondary" id="close-settings-btn">Close</button>
+          </div>
+
+          <!-- Mandatory Username Banner (shown if username is empty) -->
+          <div id="username-banner" class="banner banner-warning" style="display: none;">
+            <span>Please set yourself a username</span>
+          </div>
+
+          <!-- Profile Section -->
+          <div class="settings-section-title">
+            <span>Profile</span>
+          </div>
+
+          <div class="settings-group">
+            <label>Google Email</label>
+            <div class="settings-readonly-value" id="settings-email">email@example.com</div>
+          </div>
+
+          <div class="settings-group">
+            <label for="settings-username-input">Username (letters only)</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="settings-username-input" class="input-text"
+                     placeholder="Enter username (a-zA-Z)">
+              <button class="btn btn-primary" id="settings-save-username-btn">Save</button>
+            </div>
+            <div id="settings-feedback"
+                 style="font-size: 13px; margin-top: 8px; display: none;"></div>
+          </div>
+
+          <!-- Workspaces Section -->
+          <div class="settings-section-title">
+            <span>Workspaces</span>
+            <span id="ws-count-badge"
+                  style="font-size: 13px; font-weight: normal; color: var(--text-secondary);"></span>
+          </div>
+
+          <!-- Create New Workspace Form -->
+          <div class="ws-card">
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px;">Create New Workspace</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <input type="text" id="new-ws-name" class="input-text"
+                     placeholder="Workspace name">
+              <input type="text" id="new-ws-desc" class="input-text"
+                     placeholder="Description (optional)">
+              <div style="display: flex; justify-content: flex-end;">
+                <button class="btn btn-primary" id="create-ws-btn">Create Workspace</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Workspaces List -->
+          <div id="workspaces-list-container"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/doki/studio.js"></script>
+</body>
+</html>
