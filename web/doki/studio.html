@@ -5,246 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Doki Studio</title>
   <link rel="stylesheet" href="/common/theme.css">
-  <style>
-    /* App Shell Layout */
-    #app-container {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      width: 100vw;
-      background-color: var(--bg-secondary);
-    }
-
-    /* Top Nav Bar (web/nav) */
-    #top-nav {
-      height: var(--header-height);
-      background: var(--bg-primary);
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      z-index: 10;
-    }
-    .nav-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .nav-brand {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--primary);
-      letter-spacing: -0.5px;
-    }
-
-    /* Workspace Switcher in Top-Left */
-    .workspace-switcher {
-      position: relative;
-    }
-    .workspace-select-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-primary);
-      cursor: pointer;
-    }
-    .workspace-select-btn:hover {
-      background: var(--border-color);
-    }
-    .workspace-menu {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      box-shadow: var(--card-shadow);
-      min-width: 220px;
-      display: none;
-      flex-direction: column;
-      z-index: 20;
-    }
-    .workspace-menu.open {
-      display: flex;
-    }
-    .workspace-menu-item {
-      padding: 8px 12px;
-      font-size: 13px;
-      color: var(--text-primary);
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .workspace-menu-item:hover {
-      background: var(--bg-tertiary);
-    }
-    .workspace-menu-item.active {
-      font-weight: 600;
-      color: var(--primary);
-    }
-    .workspace-menu-divider {
-      height: 1px;
-      background: var(--border-color);
-      margin: 4px 0;
-    }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .user-pill {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-primary);
-      background-color: var(--bg-tertiary);
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
-
-    /* Canvas (web/canvas) */
-    #canvas-container {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-    }
-
-    /* Workspace Empty State */
-    #workspace-canvas {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-muted);
-    }
-    #workspace-canvas h2 {
-      font-size: 20px;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-    }
-
-    /* Settings Tile (Takes Full Canvas) */
-    #settings-tile {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: var(--bg-primary);
-      display: none;
-      flex-direction: column;
-      padding: 32px;
-      overflow-y: auto;
-      z-index: 5;
-    }
-    #settings-tile.open {
-      display: flex;
-    }
-    .settings-content {
-      max-width: 680px;
-      margin: 0 auto;
-      width: 100%;
-    }
-    .settings-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border-color);
-    }
-    .settings-header h2 {
-      font-size: 22px;
-      font-weight: 600;
-    }
-    .settings-section-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin: 28px 0 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .settings-group {
-      margin-bottom: 20px;
-    }
-    .settings-group label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-    }
-    .settings-readonly-value {
-      font-size: 14px;
-      color: var(--text-primary);
-      padding: 8px 12px;
-      background: var(--bg-tertiary);
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-    }
-
-    /* Workspace Management Card */
-    .ws-card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .ws-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .ws-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .ws-badge {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      padding: 2px 8px;
-      border-radius: 12px;
-      background: #e0f2fe;
-      color: #0369a1;
-    }
-    .collab-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 10px;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      font-size: 13px;
-      margin-bottom: 6px;
-    }
-  </style>
+  <link rel="stylesheet" href="/doki/studio.css">
 </head>
 <body>
   <div id="app-container">
-    <!-- Top Navigation Bar (web/nav) -->
+    <!-- Top Navigation Bar -->
     <header id="top-nav">
       <div class="nav-left">
         <div class="nav-brand">Doki</div>
 
-        <!-- Workspace Switcher in Top-Left Corner -->
+        <!-- Workspace Switcher in Top-Left -->
         <div class="workspace-switcher">
           <button class="workspace-select-btn" id="ws-switcher-btn">
             <span id="current-ws-name">Personal</span>
@@ -261,11 +31,19 @@
             </div>
           </div>
         </div>
+
+        <!-- Tree Toggle Icon Button in Top-Left -->
+        <button class="btn-icon" id="nav-tree-btn" title="Toggle File Tree">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+          </svg>
+        </button>
       </div>
 
       <div class="nav-actions">
         <span class="user-pill" id="nav-user-display">User</span>
-        <!-- Settings Icon Button -->
         <button class="btn-icon" id="nav-settings-btn" title="Settings">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -279,15 +57,79 @@
       </div>
     </header>
 
-    <!-- Canvas Container (web/canvas) -->
+    <!-- Canvas Container -->
     <div id="canvas-container">
-      <!-- Default Workspace Canvas -->
-      <div id="workspace-canvas">
-        <h2 id="canvas-ws-title">Workspace</h2>
-        <p>Document workspace tiles will appear here.</p>
-      </div>
+      <!-- 1. Tree Viewer Tile (Docked on Left by default) -->
+      <aside id="tree-tile">
+        <div class="tree-header">
+          <span class="tree-title">Explorer</span>
+          <div class="tree-actions">
+            <!-- Dedicated Action Icons -->
+            <button class="tree-btn" id="tree-new-file-btn" title="New File">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+            </button>
+            <button class="tree-btn" id="tree-trash-dir-btn"
+                    title="Trash Directory" disabled>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </button>
+            <button class="tree-btn" id="tree-collapse-btn" title="Collapse All">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2">
+                <polyline points="18 15 12 9 6 15"/>
+              </svg>
+            </button>
+            <button class="tree-btn" id="tree-refresh-btn" title="Refresh">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="tree-body"></div>
+      </aside>
 
-      <!-- Settings Tile (Takes Full Canvas) -->
+      <!-- 2. Document Editor Tile -->
+      <main id="doc-editor-tile">
+        <div id="doc-empty-state" class="editor-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+               stroke="var(--text-muted)" stroke-width="1.5"
+               style="margin-bottom: 12px;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <p>Select a document from the explorer tree to view or edit</p>
+        </div>
+
+        <div id="doc-active-state"
+             style="display: none; flex-direction: column; height: 100%;">
+          <div class="editor-header">
+            <div class="editor-title-container">
+              <span id="doc-title" class="editor-doc-name">document.md</span>
+              <span id="doc-save-badge" class="editor-save-badge">Saved</span>
+            </div>
+            <button class="btn btn-secondary" id="doc-save-btn"
+                    style="padding: 4px 12px; font-size: 13px;">Save</button>
+          </div>
+          <div class="editor-body">
+            <textarea id="doc-textarea" placeholder="Type document content here..."
+                      spellcheck="false"></textarea>
+          </div>
+        </div>
+      </main>
+
+      <!-- 3. Settings Tile (Takes Full Canvas) -->
       <div id="settings-tile">
         <div class="settings-content">
           <div class="settings-header">
@@ -295,19 +137,19 @@
             <button class="btn btn-secondary" id="close-settings-btn">Close</button>
           </div>
 
-          <!-- Mandatory Username Banner (shown if username is empty) -->
-          <div id="username-banner" class="banner banner-warning" style="display: none;">
+          <div id="username-banner" class="banner banner-warning"
+               style="display: none;">
             <span>Please set yourself a username</span>
           </div>
 
-          <!-- Profile Section -->
           <div class="settings-section-title">
             <span>Profile</span>
           </div>
 
           <div class="settings-group">
             <label>Google Email</label>
-            <div class="settings-readonly-value" id="settings-email">email@example.com</div>
+            <div class="settings-readonly-value"
+                 id="settings-email">email@example.com</div>
           </div>
 
           <div class="settings-group">
@@ -315,40 +157,66 @@
             <div style="display: flex; gap: 8px;">
               <input type="text" id="settings-username-input" class="input-text"
                      placeholder="Enter username (a-zA-Z)">
-              <button class="btn btn-primary" id="settings-save-username-btn">Save</button>
+              <button class="btn btn-primary"
+                      id="settings-save-username-btn">Save</button>
             </div>
             <div id="settings-feedback"
                  style="font-size: 13px; margin-top: 8px; display: none;"></div>
           </div>
 
-          <!-- Workspaces Section -->
           <div class="settings-section-title">
             <span>Workspaces</span>
             <span id="ws-count-badge"
-                  style="font-size: 13px; font-weight: normal; color: var(--text-secondary);"></span>
+                  style="font-size: 13px; color: var(--text-secondary);"></span>
           </div>
 
-          <!-- Create New Workspace Form -->
           <div class="ws-card">
-            <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px;">Create New Workspace</div>
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px;">
+              Create New Workspace
+            </div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <input type="text" id="new-ws-name" class="input-text"
                      placeholder="Workspace name">
               <input type="text" id="new-ws-desc" class="input-text"
                      placeholder="Description (optional)">
               <div style="display: flex; justify-content: flex-end;">
-                <button class="btn btn-primary" id="create-ws-btn">Create Workspace</button>
+                <button class="btn btn-primary" id="create-ws-btn">
+                  Create Workspace
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- Workspaces List -->
           <div id="workspaces-list-container"></div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Context Menu for Tree Items -->
+  <div id="tree-context-menu"></div>
+
+  <!-- Name Prompt Modal Dialog (Disallows Spaces) -->
+  <div id="name-prompt-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title" id="prompt-title">New Item</div>
+      <input type="text" id="prompt-input" class="input-text"
+             placeholder="Name (no spaces allowed)">
+      <div id="prompt-error" class="modal-error"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-secondary" id="prompt-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" id="prompt-submit-btn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/doki/tree_icons.js"></script>
+  <script src="/doki/tree_api.js"></script>
+  <script src="/doki/tree_menu.js"></script>
+  <script src="/doki/tree_handlers.js"></script>
+  <script src="/doki/editor.js"></script>
+  <script src="/doki/tree.js"></script>
+  <script src="/doki/settings.js"></script>
   <script src="/doki/studio.js"></script>
 </body>
 </html>

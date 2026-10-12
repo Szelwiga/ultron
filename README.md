@@ -19,16 +19,17 @@ communication as proto over rest API and Make as the build system.
 * java/service/ - universal rest API handlers (e.g. auth)
 * java/dbs/ - universal database wrapper functions (e.g. users, sessions)
 * java/doki/ - application-specific backend code:
-  * java/doki/dbs/ - doki database wrappers (e.g. workspaces)
-  * java/doki/service/ - doki domain services
-  * java/doki/server/ - doki HTTP handlers
+  * java/doki/dbs/ - doki database wrappers (workspaces, documents)
+  * java/doki/service/ - doki domain services (workspaces, documents)
+  * java/doki/server/ - doki HTTP handlers (workspaces, documents)
 * javatests/ - unit tests
 * integration/ - integration tests
 * web/ - frontend assets:
   * web/index.html - entry redirect to /doki/studio.html
   * web/login/ - universal UI for logging in
   * web/common/ - shared styles and theme
-  * web/doki/ - application workspace studio (studio.html, studio.js)
+  * web/doki/ - application studio (studio.html, tree.js,
+    editor.js, settings.js)
   * web/canvas/ - layout manager / dragging the tiles
   * web/nav/ - top bar of the app that allows toggling tiles
   * web/doc/ - document editor tile
@@ -39,13 +40,14 @@ communication as proto over rest API and Make as the build system.
   * web/settings/ - settings tile
 * proto/ - proto definitions:
   * proto/ - universal proto schemas (auth.proto)
-  * proto/doki/ - application-specific proto schemas (workspace.proto)
+  * proto/doki/ - application proto schemas (workspace.proto, document.proto)
 * run/build/ - build artifacts
 * run/logs/ - logging output
 * run/storage/ - databases
 * specs/ - specification files:
   * specs/ - universal specs (auth_spec.md)
-  * specs/doki/ - application-specific specs (workspace_spec.md)
+  * specs/doki/ - doki specs (workspace_spec.md,
+    document_storage_spec.md, tree_viewer_spec.md)
 
 ### Auth
 

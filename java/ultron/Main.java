@@ -5,6 +5,9 @@ import com.doki.dbs.UserDb;
 import com.doki.server.AuthHandler;
 import com.doki.server.DokiHttpsServer;
 import com.doki.service.AuthService;
+import com.doki.document.dbs.DocumentDb;
+import com.doki.document.server.DocumentHandler;
+import com.doki.document.service.DocumentService;
 import com.doki.workspace.dbs.WorkspaceDb;
 import com.doki.workspace.server.WorkspaceHandler;
 import com.doki.workspace.service.WorkspaceService;
@@ -60,12 +63,19 @@ public class Main {
           new WorkspaceService(workspaceDb, userDb);
       WorkspaceHandler workspaceHandler =
           new WorkspaceHandler(workspaceService, sessionDb);
+      DocumentDb documentDb =
+          new DocumentDb(new File(storageDir, "documents.textproto"));
+      DocumentService documentService =
+          new DocumentService(documentDb, workspaceDb);
+      DocumentHandler documentHandler =
+          new DocumentHandler(documentService, sessionDb);
       com.doki.server.StaticFileHandler staticHandler =
           new com.doki.server.StaticFileHandler(new File("web"));
 
       DokiHttpsServer server = new DokiHttpsServer(port);
       server.createContext("/api/auth", authHandler);
       server.createContext("/api/workspaces", workspaceHandler);
+      server.createContext("/api/documents", documentHandler);
       server.createContext("/", staticHandler);
 
       server.start();

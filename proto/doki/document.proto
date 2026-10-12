@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package doki.document;
+
+option java_package = "com.doki.proto.document";
+option java_multiple_files = true;
+
+message DocumentShard {
+  int32 shard_index = 1;
+  string content = 2;
+}
+
+message Document {
+  string document_id = 1;
+  string workspace_id = 2;
+  string name = 3;
+  repeated DocumentShard shards = 4;
+  int64 updated_at_ms = 5;
+}
+
+message DocumentDatabase {
+  repeated Document documents = 1;
+}
+
+message DocumentSummary {
+  string document_id = 1;
+  string workspace_id = 2;
+  string name = 3;
+  int32 shard_count = 4;
+  int64 updated_at_ms = 5;
+}
+
+message ListDocumentsResponse {
+  repeated DocumentSummary documents = 1;
+}
+
+message GetDocumentRequest {
+  string document_id = 1;
+}
+
+message GetDocumentResponse {
+  bool success = 1;
+  string error_message = 2;
+  Document document = 3;
+}
+
+message CreateDocumentRequest {
+  string workspace_id = 1;
+  string name = 2;
+  string content = 3;
+}
+
+message CreateDocumentResponse {
+  bool success = 1;
+  string error_message = 2;
+  Document document = 3;
+}
+
+message UpdateDocumentRequest {
+  string document_id = 1;
+  string content = 2;
+}
+
+message UpdateDocumentResponse {
+  bool success = 1;
+  string error_message = 2;
+  Document document = 3;
+}
+
+message RenameDocumentRequest {
+  string document_id = 1;
+  string new_name = 2;
+}
+
+message RenameDocumentResponse {
+  bool success = 1;
+  string error_message = 2;
+  Document document = 3;
+}
+
+message BatchRenamePrefixRequest {
+  string workspace_id = 1;
+  string old_prefix = 2;
+  string new_prefix = 3;
+}
+
+message BatchRenamePrefixResponse {
+  bool success = 1;
+  string error_message = 2;
+  int32 modified_count = 3;
+}
+
+message DeleteDocumentRequest {
+  string document_id = 1;
+}
+
+message DeleteDocumentResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message DeletePrefixRequest {
+  string workspace_id = 1;
+  string prefix = 2;
+}
+
+message DeletePrefixResponse {
+  bool success = 1;
+  string error_message = 2;
+  int32 deleted_count = 3;
+}

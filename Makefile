@@ -39,6 +39,7 @@ run: jar
 
 test: compile
 	java -cp "$(CLASSPATH):$(CLASSES_DIR)" com.doki.integration.AuthIntegrationTest
+	java -cp "$(CLASSPATH):$(CLASSES_DIR)" com.doki.integration.DocumentIntegrationTest
 
 clean:
 	rm -rf $(BUILD_DIR)

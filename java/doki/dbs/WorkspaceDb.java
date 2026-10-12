@@ -99,7 +99,19 @@ public class WorkspaceDb {
     if (!updated) {
       list.add(workspace);
     }
-    writeDatabase(WorkspaceDatabase.newBuilder().addAllWorkspaces(list).build());
+    writeDatabase(
+        WorkspaceDatabase.newBuilder().addAllWorkspaces(list).build());
+  }
+
+  // Checks whether user email has access (owner or collaborator) to workspace.
+  public synchronized boolean hasAccess(String workspaceId, String email)
+      throws IOException {
+    Optional<Workspace> opt = findById(workspaceId);
+    if (opt.isEmpty()) return false;
+    Workspace ws = opt.get();
+    return ws.getOwnerEmail().equalsIgnoreCase(email) ||
+        ws.getCollaboratorEmailsList().stream()
+            .anyMatch(c -> c.equalsIgnoreCase(email));
   }
 
   // Deletes workspace matching the given ID.
@@ -111,6 +123,7 @@ public class WorkspaceDb {
         list.add(ws);
       }
     }
-    writeDatabase(WorkspaceDatabase.newBuilder().addAllWorkspaces(list).build());
+    writeDatabase(
+        WorkspaceDatabase.newBuilder().addAllWorkspaces(list).build());
   }
 }
