@@ -12,11 +12,11 @@ const TreeIcons = (() => {
     ].join('');
   }
 
-  // Returns open or closed directory icon SVG.
+  // Returns open or closed directory icon SVG with contours only.
   function getFolderSvg(open) {
     return [
-      '<svg width="15" height="15" viewBox="0 0 24 24" fill="var(--folder)" ',
-      'stroke="var(--folder)" stroke-width="1.5">',
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" ',
+      'stroke="var(--folder)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">',
       '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 ',
       '2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
       '</svg>'
@@ -96,6 +96,18 @@ const TreeIcons = (() => {
     ].join('');
   }
 
+  // Returns split editor / open in new editor icon SVG.
+  function getSplitEditorSvg() {
+    return [
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" ',
+      'stroke="currentColor" stroke-width="2" stroke-linecap="round" ',
+      'stroke-linejoin="round">',
+      '<rect x="3" y="3" width="18" height="18" rx="2"/>',
+      '<line x1="12" y1="3" x2="12" y2="21"/>',
+      '</svg>'
+    ].join('');
+  }
+
   // Escapes special HTML characters.
   function escapeHtml(str) {
     if (!str) return '';
@@ -114,6 +126,7 @@ const TreeIcons = (() => {
     getTrashSvg,
     getRenameSvg,
     getDragGripSvg,
+    getSplitEditorSvg,
     escapeHtml
   };
 })();

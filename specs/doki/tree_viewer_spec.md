@@ -46,13 +46,12 @@ floating windows:
 +-------------------------------------------------------------------------+
 | [Doki] [Workspace: Personal v] [Tree]                       [Gear] [Log]|
 +-----------------------------------+-------------------------------------+
-| [::] Explorer                     | [::] Editor - readme.md      [Saved]|
+| [::] Personal        [+f][+d] [x] | [::] [home] readme.md        [Saved]|
 |-----------------------------------| +---------------------------------+ |
-| v Personal        [+file] [+dir]  | | # Document Title                | |
-|   > notes/         [+f][+d][del]  | |                                 | |
-|   v src/           [+f][+d][del]  | | [ Textarea Editor ]             | |
-|       main.py          [ren][del] | |                                 | |
-|     readme.md          [ren][del] | |                                 | |
+| > notes/             [+f][+d][del]| | # Document Title                | |
+| v src/               [+f][+d][del]| |                                 | |
+|     main.py             [ren][del]| | [ Textarea Editor ]             | |
+|   readme.md             [ren][del]| |                                 | |
 |                                   | +---------------------------------+ |
 +-----------------------------------+-------------------------------------+
 ```
@@ -61,13 +60,18 @@ floating windows:
 
 ## 3. Tree Hierarchy & Virtual Directories
 
-### 3.1 Workspace as Root
-- The root of the tree represents the currently active Workspace
-  (e.g. `Personal`).
-- The root node supports inline hover actions for creating new files and
-  subdirectories at the workspace top level.
-- Switching workspaces in the top-left dropdown re-renders the root and
-  refreshes the document tree for the newly selected workspace.
+### 3.1 Workspace in Tree Header & Actions
+- The tree viewer tile header displays the active Workspace name in natural casing
+  (no all-caps, no home icon), along with an `✕` close button to hide/dock out the
+  tree viewer.
+- The `+file` and `+folder` action buttons in the tree header are hidden by default
+  and reveal on hover.
+- The document tree hierarchy renders top-level files and directories directly
+  inside the tree body starting from depth 0.
+- Directory ("catalog") icons use outline contours only (`fill="none"`) to align
+  consistently with document file icons.
+- Switching workspaces in the top-left dropdown or settings updates the tree tile
+  header immediately, persisting across tree reopenings.
 
 ### 3.2 Virtual Directories
 - Directories are **purely client-side structures** derived by splitting
@@ -112,6 +116,8 @@ The visual language adapts to the active Light / Dark theme using design tokens:
      - `New Subdirectory`: Prompts for a subdirectory name under this folder.
      - `Delete Directory`: Trash bin icon (danger highlight) to remove directory.
    - **Document Nodes**:
+     - `Open in New Editor`: Split window SVG icon to spawn a new dockable editor
+       tile docked in the split layout.
      - `Rename`: Prompts for a new document name/path.
      - `Delete Document`: Trash bin icon (danger highlight) to delete document.
 
@@ -152,15 +158,65 @@ The visual language adapts to the active Light / Dark theme using design tokens:
     documents under the directory prefix via
     `POST /api/documents/delete_prefix`.
 
+### 5.5 Unified Top-Level Modal Dialogs (`ModalDialog`)
+- Native browser `alert()`, `confirm()`, and prompt dialogs are replaced with a
+  unified top-level modal dialog system (`ModalDialog`).
+- **Confirmation Modals**:
+  - Deleting files, directories, or workspaces prompts via styled modal dialogs
+    with explicit title, description, and danger button styling.
+- **Input Prompt Modals**:
+  - Input prompts for file creation, directory creation, and renaming enforce
+    immediate validation disallowing whitespace and empty input.
+- **Alert Modals**:
+  - Network and API error notifications appear in unified themed dialogs with
+    Escape/Enter keyboard shortcuts and backdrop click handling.
+
 ---
 
 ## 6. Document Editor Interaction
 
-1. **Opening a Document**:
-   - Clicking a document in the tree highlights it as active (`.tree-node.selected`
-     with `var(--accent-soft)` background and `var(--accent-text)` text).
-   - Loads the document via `GET /api/documents/get?document_id={id}`.
-   - Displays the content of shard 0 inside the Document Editor textarea.
-2. **Saving Content**:
-   - Typing in the textarea editor automatically queues or triggers saving of the
-     full string content back to the backend via `POST /api/documents/update`.
+1. **Opening a Document & Main Editor Tile**:
+   - Every editor tile is dynamically created, identically styled, and completely closable.
+   - The first opened editor tile is designated as the main editor and displays the home
+     icon (styled after the personal workspace home icon) with a subtle yellow background
+     (`var(--accent-soft)`) and 5px border-radius directly before the document name.
+   - Clicking a document in the tree opens it into the main editor (or focuses it if
+     already open in another editor).
+   - If the main editor is closed, the main role automatically transitions to another
+     open editor tile and the home icon moves to that editor.
+   - Clicking the **Open in New Editor** hover icon (`[|]`) on any document spawns a
+     secondary editor tile docked adjacent in the recursive split layout, enabling
+     side-by-side document comparison and simultaneous editing.
+2. **Preventing Duplicate Open Documents**:
+   - The system prevents opening the same document multiple times across editor tiles.
+   - If a document is already open in any tile, clicking it in the tree or selecting "Open
+     in New Editor" immediately shifts focus to that existing editor tile without creating a
+     duplicate.
+3. **Subtle Explorer Tree Indicators (Subtle Yellow Icon Background)**:
+   - Any document open in any editor tile is marked by giving only the file icon a subtle
+     yellow background (`var(--accent-soft)`) with 5px border-radius and high contrast stroke
+     (`.tree-node.opened-doc .tree-icon`).
+   - The dot indicator is removed.
+   - There is no row background highlight or color differentiation between the currently
+     edited file and background open files: both appear identical in the tree with no diff.
+4. **Clean Editor Border Styling**:
+   - All editor tiles have identical clean borders without accent border glow or color
+     divergence (`no editor-tile-focused border override`).
+5. **Editor Close & Multi-Tile Management**:
+   - Each editor tile has an enlarged dedicated close button (`✕`) with red hover highlighting.
+   - Closing any editor tile removes it completely from the dock split tree and DOM,
+     collapsing adjacent splits cleanly.
+6. **Welcome Tile (`welcome-tile`) & Persistent Fallback**:
+   - When no editor tiles are open (or only the tree viewer is open), the Welcome tile
+     is always present on the canvas opposite the tree viewer (or 100% if tree is hidden),
+     including on initial page load / refresh.
+   - The Welcome tile blends seamlessly into the canvas background (`background: transparent;
+     border: none; box-shadow: none;`).
+   - It displays a personalized greeting ("Hi {username}") and lists up to 5 recent documents
+     with one-click opening.
+   - Opening any document replaces the Welcome tile with the editor tile; closing all editor
+     tiles automatically restores the Welcome tile.
+7. **Autosave-Only Persistence**:
+   - The manual "Save" button is removed from the editor window header; the editor relies
+     entirely on automatic background debounced saving (800ms) with a real-time status badge
+     ("Saved", "Saving...", "Unsaved changes") syncing with `POST /api/documents/update`.

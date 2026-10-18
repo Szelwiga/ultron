@@ -198,7 +198,13 @@ const SettingsManager = (() => {
         const deleteBtn = card.querySelector('.delete-ws-btn');
         if (deleteBtn) {
           deleteBtn.addEventListener('click', async () => {
-            if (confirm(`Are you sure you want to delete workspace "${ws.name}"?`)) {
+            const confirmed = await ModalDialog.confirm({
+              title: 'Delete Workspace',
+              message: `Are you sure you want to delete workspace "${ws.name}"?`,
+              danger: true,
+              confirmText: 'Delete'
+            });
+            if (confirmed) {
               await deleteWorkspace(ws.workspaceId);
             }
           });
@@ -230,7 +236,11 @@ const SettingsManager = (() => {
     const name = newWsName.value.trim();
     const desc = newWsDesc.value.trim();
     if (!name) {
-      alert('Workspace name is required');
+      await ModalDialog.alert({
+        title: 'Validation',
+        message: 'Workspace name is required',
+        isError: true
+      });
       return;
     }
     try {
@@ -241,14 +251,22 @@ const SettingsManager = (() => {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        alert(data.errorMessage || 'Failed to create workspace');
+        await ModalDialog.alert({
+          title: 'Error',
+          message: data.errorMessage || 'Failed to create workspace',
+          isError: true
+        });
         return;
       }
       newWsName.value = '';
       newWsDesc.value = '';
       if (callbacks.onWorkspacesChanged) await callbacks.onWorkspacesChanged();
     } catch (e) {
-      alert('Error: ' + e.message);
+      await ModalDialog.alert({
+        title: 'Error',
+        message: 'Error: ' + e.message,
+        isError: true
+      });
     }
   }
 
@@ -262,12 +280,20 @@ const SettingsManager = (() => {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        alert(data.errorMessage || 'Failed to update workspace');
+        await ModalDialog.alert({
+          title: 'Error',
+          message: data.errorMessage || 'Failed to update workspace',
+          isError: true
+        });
         return;
       }
       if (callbacks.onWorkspacesChanged) await callbacks.onWorkspacesChanged();
     } catch (e) {
-      alert('Error: ' + e.message);
+      await ModalDialog.alert({
+        title: 'Error',
+        message: 'Error: ' + e.message,
+        isError: true
+      });
     }
   }
 
@@ -281,12 +307,20 @@ const SettingsManager = (() => {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        alert(data.errorMessage || 'Failed to update collaborator');
+        await ModalDialog.alert({
+          title: 'Error',
+          message: data.errorMessage || 'Failed to update collaborator',
+          isError: true
+        });
         return;
       }
       if (callbacks.onWorkspacesChanged) await callbacks.onWorkspacesChanged();
     } catch (e) {
-      alert('Error: ' + e.message);
+      await ModalDialog.alert({
+        title: 'Error',
+        message: 'Error: ' + e.message,
+        isError: true
+      });
     }
   }
 
@@ -300,13 +334,21 @@ const SettingsManager = (() => {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        alert(data.errorMessage || 'Failed to delete workspace');
+        await ModalDialog.alert({
+          title: 'Error',
+          message: data.errorMessage || 'Failed to delete workspace',
+          isError: true
+        });
         return;
       }
       if (callbacks.onWorkspaceDeleted) callbacks.onWorkspaceDeleted(workspaceId);
       if (callbacks.onWorkspacesChanged) await callbacks.onWorkspacesChanged();
     } catch (e) {
-      alert('Error: ' + e.message);
+      await ModalDialog.alert({
+        title: 'Error',
+        message: 'Error: ' + e.message,
+        isError: true
+      });
     }
   }
 

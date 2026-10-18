@@ -5,7 +5,6 @@ const TreeViewer = (() => {
   let currentWorkspaceName = '';
   let documents = [];
   let inMemoryDirs = new Set();
-  let selectedNode = null;
   let expandedDirs = new Set(['']);
 
   const treeBody = document.getElementById('tree-body');
@@ -26,7 +25,7 @@ const TreeViewer = (() => {
     removeInMemoryDir: (dir) => inMemoryDirs.delete(dir)
   };
 
-  // Initializes tree module and API listeners.
+  // Initializes tree module, API listeners, and root header buttons.
   function init() {
     TreeApi.init();
     if (treeBody) {
@@ -34,6 +33,43 @@ const TreeViewer = (() => {
         e.preventDefault();
         e.stopPropagation();
       });
+      TreeHandlers.setupDragDrop(
+          treeBody, { type: 'root', path: '' }, currentWorkspaceId, handlerCallbacks);
+    }
+
+    const headerNewFile = document.getElementById('tree-header-new-file');
+    if (headerNewFile) {
+      headerNewFile.addEventListener('click', (e) => {
+        e.stopPropagation();
+        TreeHandlers.promptNewFile(currentWorkspaceId, '', handlerCallbacks);
+      });
+    }
+
+    const headerNewDir = document.getElementById('tree-header-new-dir');
+    if (headerNewDir) {
+      headerNewDir.addEventListener('click', (e) => {
+        e.stopPropagation();
+        TreeHandlers.promptNewDir('', handlerCallbacks);
+      });
+    }
+
+    const treeCloseBtn = document.getElementById('tree-close-btn');
+    if (treeCloseBtn) {
+      treeCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof DockLayout !== 'undefined' && DockLayout.toggleTreeTile) {
+          DockLayout.toggleTreeTile();
+        }
+      });
+    }
+  }
+
+  // Updates workspace name in tree tile header.
+  function updateHeaderWorkspace() {
+    const tile = treeTile || document.getElementById('tree-tile');
+    const titleEl = tile ? tile.querySelector('#tree-ws-title') : document.getElementById('tree-ws-title');
+    if (titleEl) {
+      titleEl.textContent = currentWorkspaceName || 'Workspace';
     }
   }
 
@@ -42,6 +78,7 @@ const TreeViewer = (() => {
     currentWorkspaceId = wsId;
     currentWorkspaceName = wsName;
     inMemoryDirs.clear();
+    updateHeaderWorkspace();
     await reload();
   }
 
@@ -63,24 +100,33 @@ const TreeViewer = (() => {
     render();
   }
 
-  // Builds and renders the complete tree hierarchy in DOM.
+  // Builds and renders the complete tree hierarchy in DOM directly from depth 0.
   function render() {
+    updateHeaderWorkspace();
     treeBody.innerHTML = '';
     const rootNode = buildTreeModel();
-    const isRootExpanded = !expandedDirs.has('__root_collapsed__');
 
-    const rootEl = createNodeElement({
-      name: currentWorkspaceName || 'Workspace',
-      type: 'root',
-      path: '',
-      hasChildren: rootNode.dirs.length > 0 || rootNode.files.length > 0,
-      isExpanded: isRootExpanded
-    }, 0);
-    treeBody.appendChild(rootEl);
-
-    if (isRootExpanded) {
-      renderChildren(rootNode, 1);
+    if (rootNode.dirs.length === 0 && rootNode.files.length === 0) {
+      const emptyEl = document.createElement('div');
+      emptyEl.className = 'tree-empty-message';
+      emptyEl.style.cssText = 'padding: 24px 12px; font-size: 13px; color: var(--muted); text-align: center;';
+      emptyEl.innerHTML = `
+        <div style="margin-bottom: 8px;">No files in workspace</div>
+        <button class="btn btn-secondary" id="tree-empty-add-btn" style="font-size: 12px; padding: 4px 10px;">
+          + New File
+        </button>
+      `;
+      const addBtn = emptyEl.querySelector('#tree-empty-add-btn');
+      if (addBtn) {
+        addBtn.addEventListener('click', () => {
+          TreeHandlers.promptNewFile(currentWorkspaceId, '', handlerCallbacks);
+        });
+      }
+      treeBody.appendChild(emptyEl);
+      return;
     }
+
+    renderChildren(rootNode, 0);
   }
 
   // Recursively constructs in-memory tree from document paths and empty dirs.
@@ -162,9 +208,15 @@ const TreeViewer = (() => {
   function createNodeElement(info, depth) {
     const el = document.createElement('div');
     el.className = 'tree-node' + (info.type === 'root' ? ' tree-node-root' : '');
-    if (selectedNode && selectedNode.type === info.type &&
-        selectedNode.path === info.path) {
-      el.classList.add('selected');
+    let isOpen = false;
+    if (info.type === 'doc') {
+      el.dataset.docId = info.docId;
+      if (typeof DocumentEditor !== 'undefined' && DocumentEditor.isDocOpen) {
+        isOpen = DocumentEditor.isDocOpen(info.docId);
+        if (isOpen) {
+          el.classList.add('opened-doc');
+        }
+      }
     }
     el.style.paddingLeft = `${depth * 14 + 8}px`;
 
@@ -243,6 +295,17 @@ const TreeViewer = (() => {
         actionsCol.appendChild(deleteDirBtn);
       }
     } else if (info.type === 'doc') {
+      // Open in New Editor Action Button
+      const splitBtn = document.createElement('button');
+      splitBtn.className = 'tree-item-action-btn';
+      splitBtn.title = 'Open in New Editor';
+      splitBtn.innerHTML = TreeIcons.getSplitEditorSvg();
+      splitBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        DocumentEditor.openInNewEditor(info.docId, info.path);
+      });
+      actionsCol.appendChild(splitBtn);
+
       // Rename Document Button
       const renameBtn = document.createElement('button');
       renameBtn.className = 'tree-item-action-btn';
@@ -271,7 +334,6 @@ const TreeViewer = (() => {
     // Row selection and toggle
     el.addEventListener('click', (e) => {
       e.stopPropagation();
-      selectNode(info);
       if (info.type === 'root') {
         if (expandedDirs.has('__root_collapsed__')) {
           expandedDirs.delete('__root_collapsed__');
@@ -324,12 +386,38 @@ const TreeViewer = (() => {
     return el;
   }
 
-  // Sets selected node state.
-  function selectNode(info) {
-    selectedNode = info;
-    document.querySelectorAll('.tree-node')
-        .forEach(n => n.classList.remove('selected'));
+  // Synchronizes document highlight indicators for all open editors.
+  function updateActiveFiles() {
+    const openIds = (typeof DocumentEditor !== 'undefined' && DocumentEditor.getAllOpenDocIds)
+        ? DocumentEditor.getAllOpenDocIds()
+        : new Set();
+
+    document.querySelectorAll('.tree-node').forEach(nodeEl => {
+      const dId = nodeEl.dataset.docId;
+      if (!dId) return;
+      const isOpen = openIds.has(dId);
+
+      nodeEl.classList.toggle('opened-doc', isOpen);
+      nodeEl.classList.remove('active-file');
+      nodeEl.classList.remove('selected');
+    });
   }
 
-  return { init, loadWorkspace, reload };
+  // Sets or clears currently active file highlight.
+  function setActiveFile(docId) {
+    updateActiveFiles();
+  }
+
+  return {
+    init,
+    loadWorkspace,
+    reload,
+    render,
+    updateHeaderWorkspace,
+    setActiveFile,
+    updateActiveFiles,
+    getCurrentWorkspaceId: () => currentWorkspaceId,
+    getCurrentWorkspaceName: () => currentWorkspaceName,
+    getDocuments: () => documents
+  };
 })();

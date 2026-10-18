@@ -255,3 +255,16 @@ the user has access (as owner or collaborator) to the specified `workspace_id`.
     int32 deleted_count = 3;
   }
   ```
+
+---
+
+## 5. Client Document Editor Lifecycle & Autosave
+- **Autosave Engine**: Text entry queues debounced updates (800ms) to `POST /api/documents/update`.
+  Unsaved changes automatically flush on document switch, editor close, or window blur.
+- **Save Status Badging**: Each editor displays a real-time status badge:
+  - `Saved`: All changes successfully written to storage.
+  - `Saving...`: Async network write in flight.
+  - `Unsaved changes`: Debounce timer pending.
+- **Multi-Editor Comparison**: Documents can be opened in concurrent editor split tiles
+  (`Open in New Editor`). Duplicate opening of the same document across multiple editor
+  tiles is prevented.

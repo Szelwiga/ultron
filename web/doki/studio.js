@@ -43,6 +43,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         : currentUser.email.split('@')[0];
     navUserDisplay.textContent = display;
 
+    if (typeof WelcomeTile !== 'undefined' && WelcomeTile.setUser) {
+      WelcomeTile.setUser(currentUser);
+    }
+
     if (!currentUser.username || currentUser.username.trim() === '') {
       SettingsManager.openSettings(currentUser);
     } else {
@@ -75,6 +79,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       const active = getActiveWorkspace();
       if (active) {
         await TreeViewer.loadWorkspace(active.workspaceId, active.name);
+      }
+      if (typeof WelcomeTile !== 'undefined' && WelcomeTile.render) {
+        WelcomeTile.render();
       }
     } catch (e) {
       console.error('Failed to load workspaces', e);
@@ -110,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Selects active workspace and refreshes document tree.
-  function selectWorkspace(id) {
+  async function selectWorkspace(id) {
     currentWorkspaceId = id;
     localStorage.setItem('doki_current_ws_id', id);
     wsSwitcherMenu.classList.remove('open');
@@ -119,9 +126,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const active = getActiveWorkspace();
     if (active) {
-      TreeViewer.loadWorkspace(active.workspaceId, active.name);
+      await TreeViewer.loadWorkspace(active.workspaceId, active.name);
     }
-    DocumentEditor.close();
+    DocumentEditor.closeAll();
+    if (typeof WelcomeTile !== 'undefined' && WelcomeTile.render) {
+      WelcomeTile.render();
+    }
   }
 
   // Workspace dropdown toggle

@@ -13,13 +13,13 @@ const DockLayout = (() => {
   let activeDropTarget = null;
   let isTreeTileHidden = false;
 
-  // Default initial layout: TreeViewer on the left (26%), Editor on the right (74%)
+  // Default initial layout: TreeViewer on the left (26%), Welcome on the right (74%)
   const DEFAULT_TREE = {
     type: 'split',
     direction: 'row',
     ratio: 0.26,
     first: { type: 'leaf', id: 'tree-tile' },
-    second: { type: 'leaf', id: 'doc-editor-tile' }
+    second: { type: 'leaf', id: 'welcome-tile' }
   };
 
   let currentTree = null;
@@ -30,9 +30,9 @@ const DockLayout = (() => {
     if (!canvasContainer) return;
 
     const treeEl = document.getElementById('tree-tile');
-    const editorEl = document.getElementById('doc-editor-tile');
+    const welcomeEl = document.getElementById('welcome-tile');
     if (treeEl) tiles['tree-tile'] = treeEl;
-    if (editorEl) tiles['doc-editor-tile'] = editorEl;
+    if (welcomeEl) tiles['welcome-tile'] = welcomeEl;
 
     // Load persisted layout tree or default
     currentTree = loadTree() || cloneTree(DEFAULT_TREE);
@@ -84,6 +84,30 @@ const DockLayout = (() => {
     return [];
   }
 
+  // Ensures welcome-tile is present if no document editor tiles are open.
+  function ensureWelcomeIfNoEditors(tree) {
+    if (!tree) return cloneTree(DEFAULT_TREE);
+    const leafIds = getLeafIds(tree);
+    const hasEditors = leafIds.some(lId => typeof lId === 'string' && lId.startsWith('doc-editor-tile'));
+    if (!hasEditors) {
+      const hasTree = leafIds.includes('tree-tile');
+      if (hasTree) {
+        if (!leafIds.includes('welcome-tile')) {
+          return {
+            type: 'split',
+            direction: 'row',
+            ratio: (tree && typeof tree.ratio === 'number') ? tree.ratio : 0.26,
+            first: { type: 'leaf', id: 'tree-tile' },
+            second: { type: 'leaf', id: 'welcome-tile' }
+          };
+        }
+      } else {
+        return { type: 'leaf', id: 'welcome-tile' };
+      }
+    }
+    return tree;
+  }
+
   // Loads layout tree from localStorage with validation.
   function loadTree() {
     try {
@@ -91,13 +115,39 @@ const DockLayout = (() => {
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (validateTree(parsed)) {
-        const leafIds = getLeafIds(parsed);
-        if (leafIds.includes('tree-tile') && leafIds.includes('doc-editor-tile')) {
-          return parsed;
+        const sanitized = sanitizeTree(parsed);
+        if (sanitized) {
+          return ensureWelcomeIfNoEditors(sanitized);
         }
       }
     } catch (e) {
       console.warn('Failed to load saved dock layout', e);
+    }
+    return null;
+  }
+
+  // Sanitizes layout tree to keep only tiles that are registered or permanent.
+  function sanitizeTree(node) {
+    if (!node) return null;
+    if (node.type === 'leaf') {
+      if (node.id === 'tree-tile' || node.id === 'welcome-tile' || tiles[node.id]) {
+        return node;
+      }
+      return null;
+    }
+    if (node.type === 'split') {
+      const first = sanitizeTree(node.first);
+      const second = sanitizeTree(node.second);
+      if (!first && !second) return null;
+      if (!first) return second;
+      if (!second) return first;
+      return {
+        type: 'split',
+        direction: node.direction,
+        ratio: node.ratio,
+        first: first,
+        second: second
+      };
     }
     return null;
   }
@@ -129,12 +179,17 @@ const DockLayout = (() => {
   function render() {
     if (!canvasContainer) return;
 
-    // Detach tiles safely
+    currentTree = ensureWelcomeIfNoEditors(currentTree);
+
+    // Detach tiles safely and hide welcome tile by default
     Object.values(tiles).forEach(tile => {
       if (tile.parentElement) {
         tile.parentElement.removeChild(tile);
       }
     });
+    if (tiles['welcome-tile']) {
+      tiles['welcome-tile'].style.display = 'none';
+    }
 
     canvasContainer.innerHTML = '';
     canvasContainer.appendChild(dropOverlay);
@@ -149,20 +204,31 @@ const DockLayout = (() => {
       rootDom.style.height = '100%';
       rootDom.style.flex = '1';
       canvasContainer.appendChild(rootDom);
-    } else if (tiles['doc-editor-tile']) {
-      // Fallback: render editor if tree is completely empty
+      if (findLeaf(activeTree, 'tree-tile') && typeof TreeViewer !== 'undefined') {
+        if (TreeViewer.updateHeaderWorkspace) {
+          TreeViewer.updateHeaderWorkspace();
+        }
+      }
+      if (findLeaf(activeTree, 'welcome-tile') && typeof WelcomeTile !== 'undefined' && WelcomeTile.render) {
+        WelcomeTile.render();
+      }
+    } else if (tiles['welcome-tile']) {
       const pane = document.createElement('div');
       pane.className = 'dock-pane';
-      pane.dataset.tileId = 'doc-editor-tile';
+      pane.dataset.tileId = 'welcome-tile';
       pane.style.width = '100%';
       pane.style.height = '100%';
       pane.style.flex = '1';
-      const editorEl = tiles['doc-editor-tile'];
-      editorEl.style.width = '100%';
-      editorEl.style.height = '100%';
-      editorEl.style.flex = '1';
-      pane.appendChild(editorEl);
+      const welcomeEl = tiles['welcome-tile'];
+      welcomeEl.style.width = '100%';
+      welcomeEl.style.height = '100%';
+      welcomeEl.style.flex = '1';
+      welcomeEl.style.display = 'flex';
+      pane.appendChild(welcomeEl);
       canvasContainer.appendChild(pane);
+      if (typeof WelcomeTile !== 'undefined' && WelcomeTile.render) {
+        WelcomeTile.render();
+      }
     }
   }
 
@@ -183,6 +249,9 @@ const DockLayout = (() => {
         tile.style.width = '100%';
         tile.style.height = '100%';
         tile.style.flex = '1';
+        if (node.id === 'welcome-tile') {
+          tile.style.display = 'flex';
+        }
         pane.appendChild(tile);
       }
       return pane;
@@ -461,5 +530,88 @@ const DockLayout = (() => {
     render();
   }
 
-  return { init, render, toggleTreeTile };
+  // Opens a new tile docked adjacent to an existing target tile.
+  function openTileSplit(newId, newEl, targetId, side = 'right') {
+    tiles[newId] = newEl;
+    setupTileDrag(newEl, newId);
+
+    // If welcome-tile is in the tree, replace it with the new editor
+    if (findLeaf(currentTree, 'welcome-tile')) {
+      currentTree = replaceLeaf(currentTree, 'welcome-tile', newId);
+    } else {
+      let dockTarget = targetId;
+      if (!dockTarget || !findLeaf(currentTree, dockTarget)) {
+        dockTarget = findFirstEditorLeaf(currentTree);
+      }
+
+      if (!dockTarget || !findLeaf(currentTree, dockTarget)) {
+        currentTree = {
+          type: 'split',
+          direction: 'row',
+          ratio: 0.26,
+          first: { type: 'leaf', id: 'tree-tile' },
+          second: { type: 'leaf', id: newId }
+        };
+      } else {
+        currentTree = insertRelative(currentTree, dockTarget, newId, side);
+      }
+    }
+
+    saveTree();
+    render();
+  }
+
+  // Removes a tile from the dock tree and DOM.
+  function removeTile(id) {
+    if (!tiles[id]) return;
+    delete tiles[id];
+    currentTree = removeLeaf(currentTree, id);
+    currentTree = ensureWelcomeIfNoEditors(currentTree);
+    saveTree();
+    render();
+  }
+
+  // Replaces a leaf ID with another in the tree.
+  function replaceLeaf(node, oldId, newId) {
+    if (!node) return null;
+    if (node.type === 'leaf') {
+      return node.id === oldId ? { type: 'leaf', id: newId } : node;
+    }
+    if (node.type === 'split') {
+      return {
+        type: 'split',
+        direction: node.direction,
+        ratio: node.ratio,
+        first: replaceLeaf(node.first, oldId, newId),
+        second: replaceLeaf(node.second, oldId, newId)
+      };
+    }
+    return node;
+  }
+
+  // Checks if a leaf with given ID exists in tree.
+  function findLeaf(node, id) {
+    if (!node) return false;
+    if (node.type === 'leaf') return node.id === id;
+    if (node.type === 'split') {
+      return findLeaf(node.first, id) || findLeaf(node.second, id);
+    }
+    return false;
+  }
+
+  // Finds first editor leaf ID in tree.
+  function findFirstEditorLeaf(node) {
+    if (!node) return null;
+    if (node.type === 'leaf') {
+      return (typeof node.id === 'string' && node.id.startsWith('doc-editor-tile'))
+          ? node.id
+          : null;
+    }
+    if (node.type === 'split') {
+      return findFirstEditorLeaf(node.first) || findFirstEditorLeaf(node.second);
+    }
+    return null;
+  }
+
+  return { init, render, toggleTreeTile, openTileSplit, removeTile, findLeaf };
 })();

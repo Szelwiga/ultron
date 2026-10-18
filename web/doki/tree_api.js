@@ -1,66 +1,55 @@
 // Tree API and modal prompt operations for file/directory mutations.
 
 const TreeApi = (() => {
-  const promptModal = document.getElementById('name-prompt-modal');
-  const promptTitle = document.getElementById('prompt-title');
-  const promptInput = document.getElementById('prompt-input');
-  const promptError = document.getElementById('prompt-error');
-  const promptSubmitBtn = document.getElementById('prompt-submit-btn');
-  const promptCancelBtn = document.getElementById('prompt-cancel-btn');
-
-  let activeCallback = null;
-
-  // Initializes prompt modal button listeners.
+  // Initializes modal prompt system.
   function init() {
-    promptCancelBtn.addEventListener('click', closePrompt);
-    promptSubmitBtn.addEventListener('click', handleSubmit);
-    promptInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleSubmit();
-      if (e.key === 'Escape') closePrompt();
-    });
+    if (typeof ModalDialog !== 'undefined' && ModalDialog.init) {
+      ModalDialog.init();
+    }
   }
 
-  // Opens validated prompt dialog.
-  function openPrompt(title, defaultVal, callback) {
-    promptTitle.textContent = title;
-    promptInput.value = defaultVal || '';
-    promptError.style.display = 'none';
-    activeCallback = callback;
-    promptModal.style.display = 'flex';
-    promptInput.focus();
+  // Opens validated prompt dialog using ModalDialog.
+  async function openPrompt(title, defaultVal, callback) {
+    const val = await ModalDialog.prompt({
+      title: title,
+      defaultValue: defaultVal || '',
+      placeholder: 'Name (no spaces allowed)',
+      validate: (v) => {
+        const trimmed = (v || '').trim();
+        if (!trimmed) {
+          return 'Name cannot be empty';
+        }
+        if (/\s/.test(v)) {
+          return 'File and directory names cannot contain spaces';
+        }
+        if (v.includes('//')) {
+          return 'Name cannot contain consecutive slashes';
+        }
+        return null;
+      }
+    });
+
+    if (val !== null && callback) {
+      await callback(val.trim());
+    }
   }
 
   // Closes prompt dialog.
   function closePrompt() {
-    promptModal.style.display = 'none';
-    activeCallback = null;
+    // Handled by ModalDialog
   }
 
-  // Validates input blocking spaces before invoking callback.
-  async function handleSubmit() {
-    const val = promptInput.value.trim();
-    if (!val) {
-      showError('Name cannot be empty');
-      return;
-    }
-    if (/\s/.test(val)) {
-      showError('File and directory names cannot contain spaces');
-      return;
-    }
-    if (val.includes('//')) {
-      showError('Name cannot contain consecutive slashes');
-      return;
-    }
-    if (activeCallback) {
-      const ok = await activeCallback(val);
-      if (ok !== false) closePrompt();
-    }
-  }
-
-  // Shows error text inside prompt modal.
+  // Shows error text inside alert modal.
   function showError(msg) {
-    promptError.textContent = msg;
-    promptError.style.display = 'block';
+    if (typeof ModalDialog !== 'undefined' && ModalDialog.alert) {
+      ModalDialog.alert({
+        title: 'Error',
+        message: msg,
+        isError: true
+      });
+    } else {
+      console.error(msg);
+    }
   }
 
   // Creates document on the backend.

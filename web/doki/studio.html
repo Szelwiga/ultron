@@ -80,63 +80,51 @@
                 <circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/>
               </svg>
             </div>
-            <span class="tree-title">Explorer</span>
+            <span class="tree-title" id="tree-ws-title">Personal</span>
+          </div>
+          <div class="window-header-right tree-header-actions" style="display: flex; align-items: center; gap: 4px;">
+            <button class="tree-item-action-btn" id="tree-header-new-file" title="New File" aria-label="New File">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+            </button>
+            <button class="tree-item-action-btn" id="tree-header-new-dir" title="New Directory" aria-label="New Directory">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                <line x1="12" y1="11" x2="12" y2="17"/>
+                <line x1="9" y1="14" x2="15" y2="14"/>
+              </svg>
+            </button>
+            <button class="btn-icon tree-close-btn" id="tree-close-btn" title="Close Explorer" aria-label="Close Explorer">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
         <div id="tree-body"></div>
       </aside>
 
-      <!-- 2. Document Editor Tile (Floating Window) -->
-      <main id="doc-editor-tile" class="floating-window">
-        <div id="doc-empty-state" class="editor-empty">
-          <div class="editor-header window-header" style="width: 100%;">
-            <div class="window-header-left">
-              <div class="window-corner-drag" title="Drag to move">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="8" cy="6" r="1.5"/><circle cx="16" cy="6" r="1.5"/>
-                  <circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/>
-                  <circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/>
-                </svg>
-              </div>
-              <span class="editor-doc-name" style="color: var(--text-secondary); font-size: 13px;">Editor</span>
+      <!-- Welcome Tile (Blended into background when no editor tiles are open) -->
+      <section id="welcome-tile" class="welcome-tile">
+        <div class="welcome-content">
+          <div class="welcome-header">
+            <h1 class="welcome-title" id="welcome-greeting">Hi User</h1>
+            <p class="welcome-subtitle">Welcome to Doki Studio. Select a document from explorer to start editing.</p>
+          </div>
+          <div class="welcome-recent-section" id="welcome-recent-section">
+            <div class="welcome-section-label">Recent Documents</div>
+            <div class="welcome-recent-list" id="welcome-recent-list">
+              <!-- Dynamically populated -->
             </div>
           </div>
-          <div class="editor-empty-content">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
-                 stroke="var(--text-muted)" stroke-width="1.5"
-                 style="margin-bottom: 12px;">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-            </svg>
-            <p>Select a document from the explorer tree to view or edit</p>
-          </div>
         </div>
-
-        <div id="doc-active-state"
-             style="display: none; flex-direction: column; height: 100%; width: 100%; flex: 1;">
-          <div class="editor-header window-header">
-            <div class="window-header-left">
-              <div class="window-corner-drag" title="Drag to move">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="8" cy="6" r="1.5"/><circle cx="16" cy="6" r="1.5"/>
-                  <circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/>
-                  <circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/>
-                </svg>
-              </div>
-              <div class="editor-title-container">
-                <span id="doc-title" class="editor-doc-name">document.md</span>
-                <span id="doc-save-badge" class="editor-save-badge">Saved</span>
-              </div>
-            </div>
-            <button class="btn btn-secondary" id="doc-save-btn"
-                    style="padding: 4px 12px; font-size: 13px;">Save</button>
-          </div>
-          <div class="editor-body">
-            <textarea id="doc-textarea" placeholder="Type document content here..."
-                      spellcheck="false"></textarea>
-          </div>
-        </div>
-      </main>
+      </section>
     </div>
 
     <!-- 3. Settings Tile (Takes Full Canvas Below Top Nav) -->
@@ -234,27 +222,14 @@
     </div>
   </div>
 
-  <!-- Name Prompt Modal Dialog (Disallows Spaces) -->
-  <div id="name-prompt-modal" class="modal-overlay">
-    <div class="modal-box">
-      <div class="modal-title" id="prompt-title">New Item</div>
-      <input type="text" id="prompt-input" class="input-text"
-             placeholder="Name (no spaces allowed)">
-      <div id="prompt-error" class="modal-error"></div>
-      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
-        <button class="btn btn-secondary" id="prompt-cancel-btn">Cancel</button>
-        <button class="btn btn-primary" id="prompt-submit-btn">OK</button>
-      </div>
-    </div>
-  </div>
-
+  <script src="/doki/dialog.js"></script>
   <script src="/doki/tree_icons.js"></script>
   <script src="/doki/tree_api.js"></script>
   <script src="/doki/tree_handlers.js"></script>
+  <script src="/doki/dock.js"></script>
   <script src="/doki/editor.js"></script>
   <script src="/doki/tree.js"></script>
   <script src="/doki/settings.js"></script>
-  <script src="/doki/dock.js"></script>
   <script src="/doki/studio.js"></script>
 </body>
 </html>

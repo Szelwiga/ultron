@@ -222,4 +222,4 @@ It provides three primary sections:
        action, and an "Add Collaborator" input field with email existence
        validation.
      - Delete Workspace danger button (disabled on `Personal` workspace) with
-       confirmation dialog.
+       unified modal confirmation dialog (`ModalDialog.confirm`).

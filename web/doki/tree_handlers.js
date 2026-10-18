@@ -80,11 +80,21 @@ const TreeHandlers = (() => {
     }
 
     const msg = `Delete directory "${dirPath}" and all ${count} document(s)?`;
-    if (!confirm(msg)) return;
+    const confirmed = await ModalDialog.confirm({
+      title: 'Delete Directory',
+      message: msg,
+      danger: true,
+      confirmText: 'Delete'
+    });
+    if (!confirmed) return;
 
     const data = await TreeApi.deletePrefix(wsId, dirPath);
     if (!data.success) {
-      alert(data.errorMessage || 'Failed to delete directory');
+      await ModalDialog.alert({
+        title: 'Error',
+        message: data.errorMessage || 'Failed to delete directory',
+        isError: true
+      });
       return;
     }
     callbacks.removeInMemoryDir(dirPath);
@@ -93,14 +103,25 @@ const TreeHandlers = (() => {
 
   // Deletes single document.
   async function deleteFile(docId, path, callbacks) {
-    if (!confirm(`Are you sure you want to delete "${path}"?`)) return;
+    const confirmed = await ModalDialog.confirm({
+      title: 'Delete Document',
+      message: `Are you sure you want to delete "${path}"?`,
+      danger: true,
+      confirmText: 'Delete'
+    });
+    if (!confirmed) return;
+
     const data = await TreeApi.deleteDoc(docId);
     if (!data.success) {
-      alert(data.errorMessage || 'Failed to delete document');
+      await ModalDialog.alert({
+        title: 'Error',
+        message: data.errorMessage || 'Failed to delete document',
+        isError: true
+      });
       return;
     }
-    if (DocumentEditor.getActiveDocId() === docId) {
-      DocumentEditor.close();
+    if (typeof DocumentEditor !== 'undefined' && DocumentEditor.isDocOpen(docId)) {
+      DocumentEditor.closeDoc(docId);
     }
     await callbacks.reload();
   }

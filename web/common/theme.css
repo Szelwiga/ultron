@@ -12,7 +12,7 @@
   --accent-text: #7c3a06;
   --accent-soft: #fdf1d8;
   --on-accent: #1a1300;
-  --folder: #f5b83d;
+  --folder: #000000;
 
   /* Aliases & Component Tokens */
   --bg-primary: var(--bg);
@@ -46,7 +46,7 @@
   --accent-text: #fbbf4d;
   --accent-soft: #2c2a24;
   --on-accent: #1a1300;
-  --folder: #8a6d2e;
+  --folder: #e8eaed;
 
   /* Aliases */
   --bg-primary: var(--bg);
