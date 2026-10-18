@@ -48,7 +48,7 @@ Each workspace record contains:
 
 Workspaces are persisted in `run/storage/workspaces.textproto`.
 
-### 3.1 Protobuf Definition (`proto/workspace.proto`)
+### 3.1 Protobuf Definition (`proto/doki/workspace.proto`)
 ```proto
 syntax = "proto3";
 
@@ -195,18 +195,31 @@ All workspace endpoints require an authenticated session (`doki_session` cookie)
   of workspace-scoped tiles (documents, tree, chat).
 - Active workspace ID is stored in client storage (`localStorage`) or session.
 
-### 5.2 Settings Tile (`web/settings/`)
-In the full-canvas Settings tile, a dedicated **Workspaces** section provides:
-1. **Workspace Overview**:
-   - List of all workspaces owned by the user and workspaces shared with them.
-   - Shows ownership badge (`Owner` vs `Collaborator`) and count (e.g. `3 / 10 owned`).
-2. **Create Workspace Action**:
-   - "New Workspace" button (disabled or warning if limit of 10 is reached).
-   - Modal/form for workspace name and description.
-3. **Workspace Management Card (for Owned Workspaces)**:
-   - Edit name and description.
-   - **Collaborator Management**:
-     - List current collaborator emails with a "Remove" button.
-     - "Add Collaborator" input field (email) with validation.
-   - **Delete Workspace**:
-     - Danger button with confirmation dialog to delete the workspace.
+### 5.2 Settings Tile (`web/doki/settings.js`, `#settings-tile`)
+The Settings tile is a full-canvas overlay positioned immediately beneath the
+top navigation bar (`top: var(--header-height)`). It can be opened via:
+- The top-nav Settings gear button (`#nav-settings-btn`).
+- The "Manage Workspaces..." item in the workspace switcher dropdown.
+- Automatic prompt upon login if the user has not configured a username.
+
+It provides three primary sections:
+1. **Profile**:
+   - Displays Google account email (read-only).
+   - Configures custom username (letters only `a-zA-Z`).
+2. **Appearance**:
+   - Interactive theme switcher offering **Light** and **Dark** modes.
+   - Theme selection sets `data-theme` on document root and persists to
+     browser `localStorage['doki_theme']`.
+   - Custom palette utilizing accent colors, soft badges, and surface cards.
+3. **Workspaces Management**:
+   - **Workspace Overview**: List of all workspaces owned by the user and
+     workspaces shared with them, displaying ownership badges (`Owner` vs
+     `Collaborator`) and owned count (e.g. `3 / 10 owned`).
+   - **Create Workspace**: Name and optional description inputs with
+     validation (limit of 10 owned workspaces).
+   - **Workspace Management Card (for Owned Workspaces)**:
+     - Inline collaborator management: view list of collaborators with "Remove"
+       action, and an "Add Collaborator" input field with email existence
+       validation.
+     - Delete Workspace danger button (disabled on `Personal` workspace) with
+       confirmation dialog.
