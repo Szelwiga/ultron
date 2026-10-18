@@ -30,7 +30,7 @@
 .nav-brand {
   font-size: 18px;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--accent-strong);
   letter-spacing: -0.5px;
 }
 
@@ -99,9 +99,9 @@
 }
 .user-pill {
   font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
-  background-color: var(--bg-tertiary);
+  font-weight: 600;
+  color: var(--accent-text);
+  background-color: var(--accent-soft);
   padding: 4px 10px;
   border-radius: 20px;
 }
@@ -171,10 +171,10 @@
 .dock-splitter:hover,
 body.dock-resizing-row .dock-splitter-row,
 body.dock-resizing-col .dock-splitter-col {
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(245, 165, 36, 0.12);
 }
 .dock-splitter-grip {
-  background-color: var(--border-color);
+  background-color: var(--border);
   border-radius: 3px;
   transition: background-color 0.15s ease, transform 0.15s ease;
 }
@@ -189,14 +189,14 @@ body.dock-resizing-col .dock-splitter-col {
 .dock-splitter:hover .dock-splitter-grip,
 body.dock-resizing-row .dock-splitter-row .dock-splitter-grip,
 body.dock-resizing-col .dock-splitter-col .dock-splitter-grip {
-  background-color: var(--primary);
+  background-color: var(--accent);
 }
 
 /* Dock Drag-to-Dock Highlighting Overlay */
 #dock-drop-overlay {
   position: absolute;
-  background: rgba(99, 102, 241, 0.15);
-  border: 2px dashed var(--primary);
+  background: rgba(245, 165, 36, 0.16);
+  border: 2px dashed var(--accent);
   border-radius: 8px;
   pointer-events: none;
   z-index: 100;
@@ -248,10 +248,10 @@ body.dock-tile-dragging * {
 
 .floating-window.dock-tile-active-drag {
   opacity: 0.45;
-  border-color: var(--primary);
-  outline: 2px dashed var(--primary);
+  border-color: var(--accent);
+  outline: 2px dashed var(--accent);
   outline-offset: -2px;
-  box-shadow: 0 10px 28px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 10px 28px rgba(245, 165, 36, 0.25);
 }
 
 /* Window Headers & Corner Drag */
@@ -325,16 +325,16 @@ body.dock-tile-dragging * {
   position: relative;
 }
 .tree-node:hover {
-  background: var(--bg-tertiary);
+  background: var(--surface);
 }
 .tree-node.selected {
-  background: #e0e7ff;
-  color: var(--primary);
+  background: var(--accent-soft);
+  color: var(--accent-text);
   font-weight: 500;
 }
 .tree-node.drag-over {
-  background: #dbeafe;
-  outline: 1px dashed var(--primary);
+  background: var(--accent-soft);
+  outline: 1px dashed var(--accent);
 }
 .tree-node-left {
   display: flex;
@@ -596,8 +596,8 @@ body.dock-tile-dragging * {
   text-transform: uppercase;
   padding: 2px 8px;
   border-radius: 12px;
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 .collab-item {
   display: flex;
@@ -609,4 +609,35 @@ body.dock-tile-dragging * {
   border-radius: 4px;
   font-size: 13px;
   margin-bottom: 6px;
+}
+
+/* Theme Switcher in Settings */
+.theme-switch-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.theme-option-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.theme-option-btn:hover {
+  background: var(--bg);
+  border-color: var(--accent);
+}
+.theme-option-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+  font-weight: 600;
 }

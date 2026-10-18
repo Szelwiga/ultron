@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Doki - Login</title>
   <link rel="stylesheet" href="/common/theme.css">
+  <script>
+    (function() {
+      const theme = localStorage.getItem('doki_theme');
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
   <style>
     body {
       display: flex;
@@ -28,7 +38,7 @@
     .login-card h1 {
       font-size: 28px;
       font-weight: 700;
-      color: var(--primary);
+      color: var(--accent-strong);
       margin-bottom: 8px;
     }
     .login-card p {

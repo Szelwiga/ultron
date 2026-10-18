@@ -16,6 +16,32 @@ const SettingsManager = (() => {
   const workspacesListContainer = document.getElementById('workspaces-list-container');
 
   let callbacks = {};
+  const THEME_STORAGE_KEY = 'doki_theme';
+  let currentTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+
+  // Applies selected theme to document root and stores in localStorage.
+  function applyTheme(theme) {
+    currentTheme = theme;
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch (e) {
+      console.warn('Failed to save theme in localStorage', e);
+    }
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+    updateThemeButtons();
+  }
+
+  // Updates active state on theme switcher buttons.
+  function updateThemeButtons() {
+    const lightBtn = document.getElementById('theme-btn-light');
+    const darkBtn = document.getElementById('theme-btn-dark');
+    if (lightBtn) lightBtn.classList.toggle('active', currentTheme === 'light');
+    if (darkBtn) darkBtn.classList.toggle('active', currentTheme === 'dark');
+  }
 
   // Initializes settings tile buttons and input handlers.
   function init(cbs) {
@@ -23,6 +49,12 @@ const SettingsManager = (() => {
     closeSettingsBtn.addEventListener('click', closeSettings);
     settingsSaveBtn.addEventListener('click', saveUsername);
     createWsBtn.addEventListener('click', createWorkspace);
+
+    const lightBtn = document.getElementById('theme-btn-light');
+    const darkBtn = document.getElementById('theme-btn-dark');
+    if (lightBtn) lightBtn.addEventListener('click', () => applyTheme('light'));
+    if (darkBtn) darkBtn.addEventListener('click', () => applyTheme('dark'));
+    updateThemeButtons();
   }
 
   // Opens settings overlay tile.
@@ -30,6 +62,7 @@ const SettingsManager = (() => {
     settingsEmail.textContent = currentUser.email || '';
     settingsUsernameInput.value = currentUser.username || '';
     settingsFeedback.style.display = 'none';
+    updateThemeButtons();
 
     if (!currentUser.username || currentUser.username.trim() === '') {
       usernameBanner.style.display = 'flex';
