@@ -68,7 +68,8 @@ public class GoogleTokenVerifier {
 
       Optional<String> kidOpt = extractString(headerJson, "kid");
       if (kidOpt.isEmpty()) {
-        System.err.println("GoogleTokenVerifier: missing kid in header: " + headerJson);
+        System.err.println(
+            "GoogleTokenVerifier: missing kid in header: " + headerJson);
         return Optional.empty();
       }
 
@@ -77,7 +78,9 @@ public class GoogleTokenVerifier {
         refreshJwks();
         keyOpt = getPublicKey(kidOpt.get());
         if (keyOpt.isEmpty()) {
-          System.err.println("GoogleTokenVerifier: public key not found for kid: " + kidOpt.get());
+          System.err.println(
+              "GoogleTokenVerifier: public key not found for: " +
+              kidOpt.get());
           return Optional.empty();
         }
       }
@@ -88,13 +91,15 @@ public class GoogleTokenVerifier {
       sig.initVerify(keyOpt.get());
       sig.update(signedContent);
       if (!sig.verify(signatureBytes)) {
-        System.err.println("GoogleTokenVerifier: signature verification failed");
+        System.err.println(
+            "GoogleTokenVerifier: signature verification failed");
         return Optional.empty();
       }
 
       return validateClaims(payloadJson);
     } catch (Exception e) {
-      System.err.println("GoogleTokenVerifier: exception during verify: " + e.getMessage());
+      System.err.println(
+          "GoogleTokenVerifier: exception during verify: " + e.getMessage());
       e.printStackTrace();
       return Optional.empty();
     }
@@ -105,7 +110,8 @@ public class GoogleTokenVerifier {
     Optional<Long> expOpt = extractLong(payloadJson, "exp");
     long nowSec = System.currentTimeMillis() / 1000L;
     if (expOpt.isEmpty() || expOpt.get() < nowSec) {
-      System.err.println("GoogleTokenVerifier: token expired or missing exp: " + expOpt);
+      System.err.println(
+          "GoogleTokenVerifier: token expired or missing exp: " + expOpt);
       return Optional.empty();
     }
 
@@ -119,7 +125,8 @@ public class GoogleTokenVerifier {
     Optional<String> issOpt = extractString(payloadJson, "iss");
     if (issOpt.isEmpty() || (!"https://accounts.google.com".equals(issOpt.get())
         && !"accounts.google.com".equals(issOpt.get()))) {
-      System.err.println("GoogleTokenVerifier: iss mismatch: " + issOpt.orElse("none"));
+      System.err.println(
+          "GoogleTokenVerifier: iss mismatch: " + issOpt.orElse("none"));
       return Optional.empty();
     }
 
@@ -157,7 +164,8 @@ public class GoogleTokenVerifier {
         lastCacheRefreshMs = now;
       }
     } catch (Exception e) {
-      System.err.println("GoogleTokenVerifier: failed to fetch JWKS: " + e.getMessage());
+      System.err.println(
+          "GoogleTokenVerifier: failed to fetch JWKS: " + e.getMessage());
       e.printStackTrace();
     }
   }
@@ -189,7 +197,7 @@ public class GoogleTokenVerifier {
           keyCache.put(kid.get(), pub);
         } catch (Exception ignored) {}
       }
-      pos = end + 1;
+      pos = objEnd + 1;
     }
   }
 

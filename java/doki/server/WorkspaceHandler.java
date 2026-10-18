@@ -41,6 +41,7 @@ public class WorkspaceHandler implements HttpHandler {
     Optional<Session> sessionOpt = authenticateRequest(exchange);
     if (sessionOpt.isEmpty()) {
       exchange.sendResponseHeaders(401, -1);
+      exchange.close();
       return;
     }
 
@@ -66,6 +67,7 @@ public class WorkspaceHandler implements HttpHandler {
       handleDelete(exchange, userEmail);
     } else {
       exchange.sendResponseHeaders(404, -1);
+      exchange.close();
     }
   }
 

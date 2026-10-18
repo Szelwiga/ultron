@@ -59,65 +59,64 @@
 
     <!-- Canvas Container -->
     <div id="canvas-container">
-      <!-- 1. Tree Viewer Tile (Docked on Left by default) -->
-      <aside id="tree-tile">
-        <div class="tree-header">
-          <span class="tree-title">Explorer</span>
-          <div class="tree-actions">
-            <!-- Dedicated Action Icons -->
-            <button class="tree-btn" id="tree-new-file-btn" title="New File">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="12" y1="18" x2="12" y2="12"/>
-                <line x1="9" y1="15" x2="15" y2="15"/>
+      <!-- 1. Tree Viewer Tile (Floating Window) -->
+      <aside id="tree-tile" class="floating-window">
+        <div class="tree-header window-header">
+          <div class="window-header-left">
+            <div class="window-corner-drag" title="Drag to move">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="8" cy="6" r="1.5"/><circle cx="16" cy="6" r="1.5"/>
+                <circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/>
+                <circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/>
               </svg>
-            </button>
-            <button class="tree-btn" id="tree-trash-dir-btn"
-                    title="Trash Directory" disabled>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              </svg>
-            </button>
-            <button class="tree-btn" id="tree-collapse-btn" title="Collapse All">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2">
-                <polyline points="18 15 12 9 6 15"/>
-              </svg>
-            </button>
-            <button class="tree-btn" id="tree-refresh-btn" title="Refresh">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"/>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-              </svg>
-            </button>
+            </div>
+            <span class="tree-title">Explorer</span>
           </div>
         </div>
         <div id="tree-body"></div>
       </aside>
 
-      <!-- 2. Document Editor Tile -->
-      <main id="doc-editor-tile">
+      <!-- 2. Document Editor Tile (Floating Window) -->
+      <main id="doc-editor-tile" class="floating-window">
         <div id="doc-empty-state" class="editor-empty">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
-               stroke="var(--text-muted)" stroke-width="1.5"
-               style="margin-bottom: 12px;">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-          </svg>
-          <p>Select a document from the explorer tree to view or edit</p>
+          <div class="editor-header window-header" style="width: 100%;">
+            <div class="window-header-left">
+              <div class="window-corner-drag" title="Drag to move">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="8" cy="6" r="1.5"/><circle cx="16" cy="6" r="1.5"/>
+                  <circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/>
+                  <circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/>
+                </svg>
+              </div>
+              <span class="editor-doc-name" style="color: var(--text-secondary); font-size: 13px;">Editor</span>
+            </div>
+          </div>
+          <div class="editor-empty-content">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--text-muted)" stroke-width="1.5"
+                 style="margin-bottom: 12px;">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p>Select a document from the explorer tree to view or edit</p>
+          </div>
         </div>
 
         <div id="doc-active-state"
-             style="display: none; flex-direction: column; height: 100%;">
-          <div class="editor-header">
-            <div class="editor-title-container">
-              <span id="doc-title" class="editor-doc-name">document.md</span>
-              <span id="doc-save-badge" class="editor-save-badge">Saved</span>
+             style="display: none; flex-direction: column; height: 100%; width: 100%; flex: 1;">
+          <div class="editor-header window-header">
+            <div class="window-header-left">
+              <div class="window-corner-drag" title="Drag to move">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="8" cy="6" r="1.5"/><circle cx="16" cy="6" r="1.5"/>
+                  <circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/>
+                  <circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/>
+                </svg>
+              </div>
+              <div class="editor-title-container">
+                <span id="doc-title" class="editor-doc-name">document.md</span>
+                <span id="doc-save-badge" class="editor-save-badge">Saved</span>
+              </div>
             </div>
             <button class="btn btn-secondary" id="doc-save-btn"
                     style="padding: 4px 12px; font-size: 13px;">Save</button>
@@ -128,73 +127,70 @@
           </div>
         </div>
       </main>
+    </div>
 
-      <!-- 3. Settings Tile (Takes Full Canvas) -->
-      <div id="settings-tile">
-        <div class="settings-content">
-          <div class="settings-header">
-            <h2>Settings</h2>
-            <button class="btn btn-secondary" id="close-settings-btn">Close</button>
-          </div>
-
-          <div id="username-banner" class="banner banner-warning"
-               style="display: none;">
-            <span>Please set yourself a username</span>
-          </div>
-
-          <div class="settings-section-title">
-            <span>Profile</span>
-          </div>
-
-          <div class="settings-group">
-            <label>Google Email</label>
-            <div class="settings-readonly-value"
-                 id="settings-email">email@example.com</div>
-          </div>
-
-          <div class="settings-group">
-            <label for="settings-username-input">Username (letters only)</label>
-            <div style="display: flex; gap: 8px;">
-              <input type="text" id="settings-username-input" class="input-text"
-                     placeholder="Enter username (a-zA-Z)">
-              <button class="btn btn-primary"
-                      id="settings-save-username-btn">Save</button>
-            </div>
-            <div id="settings-feedback"
-                 style="font-size: 13px; margin-top: 8px; display: none;"></div>
-          </div>
-
-          <div class="settings-section-title">
-            <span>Workspaces</span>
-            <span id="ws-count-badge"
-                  style="font-size: 13px; color: var(--text-secondary);"></span>
-          </div>
-
-          <div class="ws-card">
-            <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px;">
-              Create New Workspace
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-              <input type="text" id="new-ws-name" class="input-text"
-                     placeholder="Workspace name">
-              <input type="text" id="new-ws-desc" class="input-text"
-                     placeholder="Description (optional)">
-              <div style="display: flex; justify-content: flex-end;">
-                <button class="btn btn-primary" id="create-ws-btn">
-                  Create Workspace
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div id="workspaces-list-container"></div>
+    <!-- 3. Settings Tile (Takes Full Canvas Below Top Nav) -->
+    <div id="settings-tile">
+      <div class="settings-content">
+        <div class="settings-header">
+          <h2>Settings</h2>
+          <button class="btn btn-secondary" id="close-settings-btn">Close</button>
         </div>
+
+        <div id="username-banner" class="banner banner-warning"
+             style="display: none;">
+          <span>Please set yourself a username</span>
+        </div>
+
+        <div class="settings-section-title">
+          <span>Profile</span>
+        </div>
+
+        <div class="settings-group">
+          <label>Google Email</label>
+          <div class="settings-readonly-value"
+               id="settings-email">email@example.com</div>
+        </div>
+
+        <div class="settings-group">
+          <label for="settings-username-input">Username (letters only)</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="settings-username-input" class="input-text"
+                   placeholder="Enter username (a-zA-Z)">
+            <button class="btn btn-primary"
+                    id="settings-save-username-btn">Save</button>
+          </div>
+          <div id="settings-feedback"
+               style="font-size: 13px; margin-top: 8px; display: none;"></div>
+        </div>
+
+        <div class="settings-section-title">
+          <span>Workspaces</span>
+          <span id="ws-count-badge"
+                style="font-size: 13px; color: var(--text-secondary);"></span>
+        </div>
+
+        <div class="ws-card">
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px;">
+            Create New Workspace
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <input type="text" id="new-ws-name" class="input-text"
+                   placeholder="Workspace name">
+            <input type="text" id="new-ws-desc" class="input-text"
+                   placeholder="Description (optional)">
+            <div style="display: flex; justify-content: flex-end;">
+              <button class="btn btn-primary" id="create-ws-btn">
+                Create Workspace
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="workspaces-list-container"></div>
       </div>
     </div>
   </div>
-
-  <!-- Context Menu for Tree Items -->
-  <div id="tree-context-menu"></div>
 
   <!-- Name Prompt Modal Dialog (Disallows Spaces) -->
   <div id="name-prompt-modal" class="modal-overlay">
@@ -212,11 +208,11 @@
 
   <script src="/doki/tree_icons.js"></script>
   <script src="/doki/tree_api.js"></script>
-  <script src="/doki/tree_menu.js"></script>
   <script src="/doki/tree_handlers.js"></script>
   <script src="/doki/editor.js"></script>
   <script src="/doki/tree.js"></script>
   <script src="/doki/settings.js"></script>
+  <script src="/doki/dock.js"></script>
   <script src="/doki/studio.js"></script>
 </body>
 </html>

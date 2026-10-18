@@ -49,6 +49,7 @@ public class DocumentHandler implements HttpHandler {
     Optional<Session> sessionOpt = authenticateRequest(exchange);
     if (sessionOpt.isEmpty()) {
       exchange.sendResponseHeaders(401, -1);
+      exchange.close();
       return;
     }
 
@@ -81,6 +82,7 @@ public class DocumentHandler implements HttpHandler {
       handleDeletePrefix(exchange, userEmail);
     } else {
       exchange.sendResponseHeaders(404, -1);
+      exchange.close();
     }
   }
 

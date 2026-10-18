@@ -11,7 +11,6 @@ const TreeViewer = (() => {
   const treeBody = document.getElementById('tree-body');
   const treeTile = document.getElementById('tree-tile');
   const navTreeBtn = document.getElementById('nav-tree-btn');
-  const trashDirBtn = document.getElementById('tree-trash-dir-btn');
 
   const handlerCallbacks = {
     reload: () => reload(),
@@ -27,51 +26,15 @@ const TreeViewer = (() => {
     removeInMemoryDir: (dir) => inMemoryDirs.delete(dir)
   };
 
-  // Initializes tree tile toggle, toolbar buttons, and document click.
+  // Initializes tree module and API listeners.
   function init() {
     TreeApi.init();
-    TreeMenu.init(document.getElementById('tree-context-menu'), {
-      onNewFile: (p) => TreeHandlers.promptNewFile(
-          currentWorkspaceId, p, handlerCallbacks),
-      onNewDir: (p) => TreeHandlers.promptNewDir(p, handlerCallbacks),
-      onRenameDir: (p) => TreeHandlers.promptRenameDir(
-          currentWorkspaceId, p, handlerCallbacks),
-      onTrashDir: (p) => TreeHandlers.trashDirectory(
-          currentWorkspaceId, p, documents, handlerCallbacks),
-      onOpenDoc: (id, path) => DocumentEditor.open(id, path),
-      onRenameDoc: (id, path) => TreeHandlers.promptRenameFile(
-          id, path, handlerCallbacks),
-      onDeleteDoc: (id, path) => TreeHandlers.deleteFile(
-          id, path, handlerCallbacks)
-    });
-
-    navTreeBtn.addEventListener('click', toggleVisibility);
-    document.getElementById('tree-new-file-btn').addEventListener(
-        'click', () => TreeHandlers.promptNewFile(
-            currentWorkspaceId, getTargetDirPath(), handlerCallbacks));
-    trashDirBtn.addEventListener('click', () => {
-      if (selectedNode && selectedNode.type === 'dir') {
-        TreeHandlers.trashDirectory(
-            currentWorkspaceId, selectedNode.path, documents, handlerCallbacks);
-      }
-    });
-    document.getElementById('tree-refresh-btn').addEventListener(
-        'click', reload);
-    document.getElementById('tree-collapse-btn').addEventListener(
-        'click', () => {
-          expandedDirs.clear();
-          render();
-        });
-
-    const stored = localStorage.getItem('doki_tree_visible');
-    if (stored === 'false') treeTile.classList.add('hidden');
-  }
-
-  // Toggles visibility of the tree viewer tile.
-  function toggleVisibility() {
-    treeTile.classList.toggle('hidden');
-    const isVisible = !treeTile.classList.contains('hidden');
-    localStorage.setItem('doki_tree_visible', isVisible ? 'true' : 'false');
+    if (treeBody) {
+      treeBody.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+    }
   }
 
   // Sets active workspace and loads its document tree from the backend.
@@ -104,17 +67,20 @@ const TreeViewer = (() => {
   function render() {
     treeBody.innerHTML = '';
     const rootNode = buildTreeModel();
+    const isRootExpanded = !expandedDirs.has('__root_collapsed__');
 
     const rootEl = createNodeElement({
       name: currentWorkspaceName || 'Workspace',
       type: 'root',
       path: '',
-      hasChildren: rootNode.dirs.length > 0 || rootNode.files.length > 0
+      hasChildren: rootNode.dirs.length > 0 || rootNode.files.length > 0,
+      isExpanded: isRootExpanded
     }, 0);
     treeBody.appendChild(rootEl);
 
-    renderChildren(rootNode, 1);
-    updateToolbar();
+    if (isRootExpanded) {
+      renderChildren(rootNode, 1);
+    }
   }
 
   // Recursively constructs in-memory tree from document paths and empty dirs.
@@ -192,21 +158,26 @@ const TreeViewer = (() => {
     });
   }
 
-  // Creates DOM element for a tree node with icons and event handlers.
+  // Creates DOM element for a tree node with hover action icons.
   function createNodeElement(info, depth) {
     const el = document.createElement('div');
-    el.className = 'tree-node';
+    el.className = 'tree-node' + (info.type === 'root' ? ' tree-node-root' : '');
     if (selectedNode && selectedNode.type === info.type &&
         selectedNode.path === info.path) {
       el.classList.add('selected');
     }
     el.style.paddingLeft = `${depth * 14 + 8}px`;
 
-    let chevronHtml = '<span class="tree-chevron"></span>';
+    // Left container: chevron + icon + label
+    const leftCol = document.createElement('div');
+    leftCol.className = 'tree-node-left';
+
+    let chevronHtml = '<span class="tree-chevron placeholder"></span>';
     if (info.type === 'dir' || info.type === 'root') {
-      const isExp = info.type === 'root' ? true : info.isExpanded;
+      const isExp = info.isExpanded;
       chevronHtml = [
-        `<span class="tree-chevron ${isExp ? 'expanded' : ''}">`,
+        `<span class="tree-chevron ${isExp ? 'expanded' : ''}" `,
+        `title="${isExp ? 'Collapse' : 'Expand'}">`,
         '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" ',
         'stroke="currentColor" stroke-width="2.5">',
         '<path d="m9 18 6-6-6-6"/>',
@@ -217,36 +188,135 @@ const TreeViewer = (() => {
 
     let iconHtml = '';
     if (info.type === 'root') {
-      const wsSvg = TreeIcons.getWorkspaceSvg();
-      iconHtml = `<span class="tree-icon">${wsSvg}</span>`;
+      iconHtml = `<span class="tree-icon">${TreeIcons.getWorkspaceSvg()}</span>`;
     } else if (info.type === 'dir') {
-      const folderSvg = TreeIcons.getFolderSvg(info.isExpanded);
-      iconHtml = `<span class="tree-icon">${folderSvg}</span>`;
+      iconHtml = `<span class="tree-icon">${TreeIcons.getFolderSvg(info.isExpanded)}</span>`;
     } else {
       iconHtml = `<span class="tree-icon">${TreeIcons.getFileSvg()}</span>`;
     }
 
-    const label = TreeIcons.escapeHtml(info.name);
-    el.innerHTML = chevronHtml + iconHtml +
-        `<span class="tree-label">${label}</span>`;
+    const labelHtml = `<span class="tree-label">${TreeIcons.escapeHtml(info.name)}</span>`;
+    leftCol.innerHTML = chevronHtml + iconHtml + labelHtml;
+    el.appendChild(leftCol);
 
+    // Right container: per-item hover action buttons
+    const actionsCol = document.createElement('div');
+    actionsCol.className = 'tree-item-actions';
+
+    if (info.type === 'root' || info.type === 'dir') {
+      const targetDir = info.type === 'root' ? '' : info.path;
+
+      // New File Action Button
+      const newFileBtn = document.createElement('button');
+      newFileBtn.className = 'tree-item-action-btn';
+      newFileBtn.title = 'New File';
+      newFileBtn.innerHTML = TreeIcons.getNewFileSvg();
+      newFileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        TreeHandlers.promptNewFile(
+            currentWorkspaceId, targetDir, handlerCallbacks);
+      });
+      actionsCol.appendChild(newFileBtn);
+
+      // New Subdirectory Action Button
+      const newDirBtn = document.createElement('button');
+      newDirBtn.className = 'tree-item-action-btn';
+      newDirBtn.title = 'New Subdirectory';
+      newDirBtn.innerHTML = TreeIcons.getNewFolderSvg();
+      newDirBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        TreeHandlers.promptNewDir(targetDir, handlerCallbacks);
+      });
+      actionsCol.appendChild(newDirBtn);
+
+      // Delete Directory Action Button (only on directories)
+      if (info.type === 'dir') {
+        const deleteDirBtn = document.createElement('button');
+        deleteDirBtn.className = 'tree-item-action-btn danger';
+        deleteDirBtn.title = 'Delete Directory';
+        deleteDirBtn.innerHTML = TreeIcons.getTrashSvg();
+        deleteDirBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          TreeHandlers.trashDirectory(
+              currentWorkspaceId, info.path, documents, handlerCallbacks);
+        });
+        actionsCol.appendChild(deleteDirBtn);
+      }
+    } else if (info.type === 'doc') {
+      // Rename Document Button
+      const renameBtn = document.createElement('button');
+      renameBtn.className = 'tree-item-action-btn';
+      renameBtn.title = 'Rename Document';
+      renameBtn.innerHTML = TreeIcons.getRenameSvg();
+      renameBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        TreeHandlers.promptRenameFile(
+            info.docId, info.path, handlerCallbacks);
+      });
+      actionsCol.appendChild(renameBtn);
+
+      // Delete Document Button
+      const deleteDocBtn = document.createElement('button');
+      deleteDocBtn.className = 'tree-item-action-btn danger';
+      deleteDocBtn.title = 'Delete Document';
+      deleteDocBtn.innerHTML = TreeIcons.getTrashSvg();
+      deleteDocBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        TreeHandlers.deleteFile(info.docId, info.path, handlerCallbacks);
+      });
+      actionsCol.appendChild(deleteDocBtn);
+    }
+    el.appendChild(actionsCol);
+
+    // Row selection and toggle
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       selectNode(info);
-      if (info.type === 'dir') {
-        if (expandedDirs.has(info.path)) expandedDirs.delete(info.path);
-        else expandedDirs.add(info.path);
+      if (info.type === 'root') {
+        if (expandedDirs.has('__root_collapsed__')) {
+          expandedDirs.delete('__root_collapsed__');
+        } else {
+          expandedDirs.add('__root_collapsed__');
+        }
+        render();
+      } else if (info.type === 'dir') {
+        if (expandedDirs.has(info.path)) {
+          expandedDirs.delete(info.path);
+        } else {
+          expandedDirs.add(info.path);
+        }
         render();
       } else if (info.type === 'doc') {
         DocumentEditor.open(info.docId, info.path);
       }
     });
 
+    // Explicit chevron click toggle
+    const chevronEl = leftCol.querySelector('.tree-chevron:not(.placeholder)');
+    if (chevronEl) {
+      chevronEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (info.type === 'root') {
+          if (expandedDirs.has('__root_collapsed__')) {
+            expandedDirs.delete('__root_collapsed__');
+          } else {
+            expandedDirs.add('__root_collapsed__');
+          }
+          render();
+        } else if (info.type === 'dir') {
+          if (expandedDirs.has(info.path)) {
+            expandedDirs.delete(info.path);
+          } else {
+            expandedDirs.add(info.path);
+          }
+          render();
+        }
+      });
+    }
+
     el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      selectNode(info);
-      TreeMenu.show(e.clientX, e.clientY, info);
     });
 
     TreeHandlers.setupDragDrop(
@@ -254,26 +324,11 @@ const TreeViewer = (() => {
     return el;
   }
 
-  // Sets selected node and updates toolbar button states.
+  // Sets selected node state.
   function selectNode(info) {
     selectedNode = info;
     document.querySelectorAll('.tree-node')
         .forEach(n => n.classList.remove('selected'));
-    updateToolbar();
-  }
-
-  // Updates toolbar icons (e.g. enabling Trash Directory button).
-  function updateToolbar() {
-    trashDirBtn.disabled = !(selectedNode && selectedNode.type === 'dir');
-  }
-
-  // Returns targeted directory path for creating new files or directories.
-  function getTargetDirPath() {
-    if (!selectedNode || selectedNode.type === 'root') return '';
-    if (selectedNode.type === 'dir') return selectedNode.path;
-    const parts = selectedNode.path.split('/');
-    parts.pop();
-    return parts.join('/');
   }
 
   return { init, loadWorkspace, reload };

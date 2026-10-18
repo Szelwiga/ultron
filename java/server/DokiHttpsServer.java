@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
+import java.util.concurrent.Executors;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
@@ -22,6 +23,7 @@ public class DokiHttpsServer {
   public DokiHttpsServer(int port) throws Exception {
     this.port = port;
     this.server = HttpsServer.create(new InetSocketAddress(port), 0);
+    this.server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
     SSLContext sslContext = createSSLContext();
     this.server.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
       @Override
@@ -100,7 +102,8 @@ public class DokiHttpsServer {
     Process p = pb.start();
     int exit = p.waitFor();
     if (exit != 0) {
-      throw new IllegalStateException("Failed to generate keystore via keytool");
+      throw new IllegalStateException(
+          "Failed to generate keystore via keytool");
     }
   }
 }

@@ -62,6 +62,7 @@ public class AuthHandler implements HttpHandler {
       handleLogout(exchange);
     } else {
       exchange.sendResponseHeaders(404, -1);
+      exchange.close();
     }
   }
 
@@ -174,7 +175,8 @@ public class AuthHandler implements HttpHandler {
     Optional<User> userOpt =
         userDb.findByEmail(sessionOpt.get().getUserId());
     String username = userOpt.map(User::getUsername).orElse("");
-    String email = userOpt.map(User::getEmail).orElse(sessionOpt.get().getUserId());
+    String email = userOpt.map(User::getEmail)
+        .orElse(sessionOpt.get().getUserId());
 
     GetMeResponse resp = GetMeResponse.newBuilder()
         .setAuthenticated(true)
@@ -194,6 +196,7 @@ public class AuthHandler implements HttpHandler {
         "Set-Cookie",
         "doki_session=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0");
     exchange.sendResponseHeaders(204, -1);
+    exchange.close();
   }
 
   // Serializes protobuf message to response stream (JSON or protobuf).

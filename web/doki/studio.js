@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initializes modules and settings callbacks.
   TreeViewer.init();
   DocumentEditor.init();
+  DockLayout.init();
 
   SettingsManager.init({
     onUsernameUpdated: (newUsername) => {

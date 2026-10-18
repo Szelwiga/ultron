@@ -27,6 +27,7 @@ public class StaticFileHandler implements HttpHandler {
     String method = exchange.getRequestMethod();
     if (!"GET".equalsIgnoreCase(method) && !"HEAD".equalsIgnoreCase(method)) {
       exchange.sendResponseHeaders(405, -1);
+      exchange.close();
       return;
     }
 
@@ -60,6 +61,8 @@ public class StaticFileHandler implements HttpHandler {
            OutputStream os = exchange.getResponseBody()) {
         fis.transferTo(os);
       }
+    } else {
+      exchange.close();
     }
   }
 

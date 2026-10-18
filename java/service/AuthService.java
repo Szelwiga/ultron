@@ -106,7 +106,8 @@ public class AuthService {
   public SetUsernameResponse handleSetUsername(
       String userEmail, SetUsernameRequest req) throws IOException {
     String desiredName = req.getDesiredName();
-    if (desiredName == null || !USERNAME_PATTERN.matcher(desiredName).matches()) {
+    if (desiredName == null ||
+        !USERNAME_PATTERN.matcher(desiredName).matches()) {
       return SetUsernameResponse.newBuilder()
           .setSuccess(false)
           .setErrorMessage("Username must contain only letters (a-zA-Z)")
